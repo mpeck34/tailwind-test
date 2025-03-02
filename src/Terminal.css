@@ -1,0 +1,59 @@
+/* Outer container for black background */
+.terminal-outer-container {
+    background-color: black;  /* Black background */
+    padding: 20px; /* Padding to create space for the inner container's border */
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+/* Terminal.css */
+.terminal-container {
+    flex-grow: 1;
+    background-color: black;
+    color: #00ff00; /* Green text */
+    font-family: 'Courier New', monospace;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow-y: auto;
+    border: 2px solid #00ff00; /* Optional: to give it a border like an old monitor */
+    border-radius: 10px;
+    box-sizing: border-box;
+}
+
+/* History container styling */
+.terminal-history {
+    flex-grow: 1; /* Allow history to take up remaining space */
+    overflow-y: auto; /* Make the history scrollable */
+    width: 100%;
+    padding-right: 20px; /* Ensure there's space for the scrollbar */
+    margin-bottom: 20px; /* Add space between history and input */
+  }
+
+.terminal-line {
+    margin: 5px 0;
+}
+
+.terminal-input {
+    display: flex;
+    align-items: center;
+    padding-top: 10px;
+    width: 100%;
+}
+
+.terminal-text-input {
+    background: transparent;
+    border: none;
+    color: #00ff00;
+    font-size: 1rem;
+    font-family: 'Courier New', monospace;
+    outline: none;
+    width: 100%;
+}
+
+.prompt {
+    color: #00ff00;
+}
