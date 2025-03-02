@@ -4,31 +4,35 @@ import './App.css';
 import './Terminal.css';
 
 function GameMenu() {
-    const [hasSavedGame, setHasSavedGame] = useState(false);
-    const [isNewGame, setIsNewGame] = useState(false);
+    const [hasContinue, setHasContinue] = useState(false);
+    const [isInProgress, setIsInProgress] = useState(false);
 
     const handleNewGame = () => {
-        setIsNewGame(true);
-        setHasGameStarted(true);
+        setIsInProgress(true);
+        setHasContinue(true); // Now a new game means the game can be continued
     };
 
     const handleContinueGame = () => {
-        setIsNewGame(true); // Just resume the game
-      };
+        if (hasContinue) {
+            setIsInProgress(true); // Game is in progress, continue
+            console.log("Continuing the game...");
+        }
+    };
 
     const handleQuit = () => {
         console.log("Quitting game... Returning to menu.");
-        setIsNewGame(false); // Hide terminal and return to menu
-      };
+        setIsInProgress(false); // Hide terminal and return to menu
+        // Optionally you can add logic for saving the game here
+    };
 
     return (
         <div className="game-container">
             <div className="menu-container">
                 <h1 className="title">My Awesome Game</h1>
-                {!isNewGame ? (
+                {!isInProgress ? (  // Show menu only when game isn't in progress
                     <div className="menu-items">
                         <button className="menu-button" onClick={handleNewGame}>New Game</button>
-                        <button className="menu-button" onClick={handleContinueGame} disabled={!hasGameStarted}>
+                        <button className="menu-button" onClick={handleContinueGame} disabled={!hasContinue}>
                             Continue Game
                         </button>
                         <button className="menu-button" onClick={() => alert("Opening options")}>Options</button>
@@ -36,8 +40,8 @@ function GameMenu() {
                     </div>
                 ) : null}
             </div>
-            
-            {isNewGame && (
+
+            {isInProgress && (
                 <div className="terminal-outer-container">
                     <Terminal onQuit={handleQuit} />
                 </div>
