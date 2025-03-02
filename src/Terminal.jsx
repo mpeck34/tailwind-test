@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Terminal.css'; // Assuming you will add styling here
 
-function Terminal() {
+function Terminal({ onQuit }) {
   const [input, setInput] = useState('');
   const [history, setHistory] = useState([]);
-
-  // Create a ref to the terminal history container
   const historyEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   // Scroll to the bottom of the history container when new content is added
   useEffect(() => {
@@ -29,6 +28,9 @@ function Terminal() {
       setHistory((prev) => [...prev, 'Commands: look, help, quit']);
     } else if (input === 'quit') {
       setHistory((prev) => [...prev, 'Game Over']);
+      setInput('');
+      onQuit();
+      return;
     } else {
       setHistory((prev) => [...prev, `Unknown command: ${input}`]);
     }
@@ -38,7 +40,7 @@ function Terminal() {
   };
 
   return (
-    <div className="terminal-container">
+    <div className="terminal-container" onClick={() => inputRef.current.focus()}>
       {/* Displaying the text history */}
       <div className="terminal-history">
         {history.map((line, index) => (
@@ -55,6 +57,7 @@ function Terminal() {
           onChange={(e) => setInput(e.target.value)}
           autoFocus
           className="terminal-text-input"
+          ref={inputRef}
         />
       </form>
     </div>

@@ -26,7 +26,6 @@
 
 /* History container styling */
 .terminal-history {
-    flex-grow: 1; /* Allow history to take up remaining space */
     overflow-y: auto; /* Make the history scrollable */
     width: 100%;
     padding-right: 20px; /* Ensure there's space for the scrollbar */

@@ -7,9 +7,19 @@ function GameMenu() {
     const [hasSavedGame, setHasSavedGame] = useState(false);
     const [isNewGame, setIsNewGame] = useState(false);
 
-    const startNewGame = () => {
+    const handleNewGame = () => {
         setIsNewGame(true);
+        setHasGameStarted(true);
     };
+
+    const handleContinueGame = () => {
+        setIsNewGame(true); // Just resume the game
+      };
+
+    const handleQuit = () => {
+        console.log("Quitting game... Returning to menu.");
+        setIsNewGame(false); // Hide terminal and return to menu
+      };
 
     return (
         <div className="game-container">
@@ -17,13 +27,8 @@ function GameMenu() {
                 <h1 className="title">My Awesome Game</h1>
                 {!isNewGame ? (
                     <div className="menu-items">
-                        <button className="menu-button" onClick={startNewGame}>New Game</button>
-                        <button
-                            className="menu-button"
-                            disabled={!hasSavedGame}
-                            style={{ backgroundColor: !hasSavedGame ? '#ccc' : '#4CAF50' }}
-                            onClick={() => hasSavedGame ? alert("Continuing game") : null}
-                        >
+                        <button className="menu-button" onClick={handleNewGame}>New Game</button>
+                        <button className="menu-button" onClick={handleContinueGame} disabled={!hasGameStarted}>
                             Continue Game
                         </button>
                         <button className="menu-button" onClick={() => alert("Opening options")}>Options</button>
@@ -34,7 +39,7 @@ function GameMenu() {
             
             {isNewGame && (
                 <div className="terminal-outer-container">
-                    <Terminal />  {/* Render Terminal when new game is started */}
+                    <Terminal onQuit={handleQuit} />
                 </div>
             )}
         </div>
