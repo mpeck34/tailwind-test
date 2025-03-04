@@ -1,55 +1,57 @@
-// game.js
-const gameData = require('./src/data/gameData.json'); // Import the entire game data object
+const gameData = require('./src/data/gameData.json');
 
-// You can now access the properties directly
 const playerData = gameData.playerData;
 const areaData = gameData.areas;
 const inventoryDescriptions = gameData.inventoryDescriptions;
 
-// Display area information to the player
 function displayArea(areaId) {
   const area = areaData.find(area => area.areaId === areaId);
+  if (!area) return console.log('Area not found.');
 
-  console.log(`You are in: ${area.name}`);
+  console.log(`\nYou are in: ${area.name}`);
   console.log(area.description);
 
   console.log('\nItems here:');
-  area.items.forEach(item => {
-    console.log(`- ${item.name}: ${item.description}`);
-  });
+  area.items.forEach(item => console.log(`- ${item.name}: ${item.description}`));
 
   console.log('\nNPCs here:');
-  area.npcs.forEach(npc => {
-    console.log(`- ${npc.name}: ${npc.description}`);
-  });
+  area.npcs.forEach(npc => console.log(`- ${npc.name}: ${npc.description}`));
 
   console.log('\nCommands available:');
-  area.exits.commands.forEach(command => {
+  [...area.exits.commands, ...area.items.flatMap(i => i.commands), ...area.npcs.flatMap(n => n.commands), ...area.secrets.flatMap(s => s.commands)].forEach(command => {
     console.log(`- ${command.command}: ${command.description}`);
   });
 }
 
-// Handle player input and actions
 function handleCommand(input) {
   const currentArea = areaData.find(area => area.areaId === playerData.currentArea);
-  const command = currentArea.exits.commands.find(c => c.command === input);
+  if (!currentArea) return console.log('Invalid area.');
+
+  const allCommands = [...currentArea.exits.commands, ...currentArea.items.flatMap(i => i.commands), ...currentArea.npcs.flatMap(n => n.commands), ...currentArea.secrets.flatMap(s => s.commands)];
+  const command = allCommands.find(c => c.command.toLowerCase() === input);
 
   if (command) {
-    if (command.isOpen) {
+    if (!command.condition || checkCondition(command.condition)) {
       console.log(command.response);
-      // Trigger corresponding area action or transition
-      handleAction(command);
+      handleAction(command, currentArea);
     } else {
-      console.log(`The command "${input}" is not available right now.`);
+      console.log(`You cannot do that right now.`);
     }
   } else {
-    console.log(`Unknown command: "${input}". Try again.`);
+    console.log(`Unknown command: "${input}".`);
   }
 }
 
-// Perform action based on the command
-function handleAction(command) {
-  // Update player state, area state, etc.
+function handleAction(command, currentArea) {
+  if (command.actionTrigger) {
+    const { type, action, value } = command.actionTrigger;
+    if (type === 'area') {
+      currentArea.completedAreaActions[action] = value;
+    } else if (type === 'player') {
+      playerData.completedActions[action] = value;
+    }
+  }
+
   switch (command.command) {
     case 'go south':
       playerData.currentArea = currentArea.exits.south;
@@ -64,42 +66,38 @@ function handleAction(command) {
         console.log('You cannot teleport yet.');
       }
       break;
+    case 'pick up':
+      const item = currentArea.items.find(i => i.name === command.response.split(' ')[2]);
+      if (item) {
+        playerData.inventory.push({ item: item.name, quantity: 1 });
+        console.log(`${item.name} added to your inventory.`);
+      }
+      break;
     default:
-      console.log('Action not implemented yet.');
+      console.log('Action completed.');
   }
 }
 
-// Check if the player satisfies a condition (e.g., item in inventory)
 function checkCondition(condition) {
-  if (condition) {
-    if (condition.startsWith('hasItem:')) {
-      const itemName = condition.split(':')[1];
-      return playerData.inventory.some(item => item.item === itemName);
-    } else if (condition === 'placedStaffInStump') {
-      return playerData.completedActions.placedStaffInStump;
-    }
+  if (!condition) return true;
+  if (condition.startsWith('hasItem:')) {
+    const itemName = condition.split(':')[1];
+    return playerData.inventory.some(item => item.item === itemName);
   }
-  return true; // Default: condition passed if no condition exists
+  return playerData.completedActions[condition] || false;
 }
 
-// Start the game by initializing player data and displaying the first area
 function startGame() {
   console.log('Welcome to the game!');
-  playerData.currentArea = 1; // Start in the first area (Village Square)
-
-  // Display the first area
+  playerData.currentArea = 1;
   displayArea(playerData.currentArea);
 
-  // Example of getting user input
   const readline = require('readline');
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
   rl.on('line', (input) => {
     handleCommand(input.trim().toLowerCase());
-    displayArea(playerData.currentArea); // Show updated area after action
+    displayArea(playerData.currentArea);
   });
 }
 
