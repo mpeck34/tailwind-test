@@ -1,307 +1,156 @@
-
 {
-    "gameSettings": {
-      "difficulty": "normal",
-      "language": "en",
-      "sound": true
-    },
-    "playerData": {
-      "playerName": "Player1",
-      "level": 5,
-      "score": 1000,
-      "hasSavedGame": true,
-      "inventory": [
-        {
-          "item": "sword",
-          "quantity": 1
-        },
-        {
-          "item": "healthPotion",
-          "quantity": 3
-        },
-        {
-          "item": "Wooden Staff",
-          "quantity": 1
-        }
-      ],
-      "conditions": {
-        "health": 100,
-        "mana": 50,
-        "stamina": 75,
-        "isInCombat": false
-      },
-      "completedActions": {
-        "vanquishedDragon": false,
-        "usedWoodenStaffInStump": false
-      }
-    },
-    "inventoryDescriptions": [
+  "gameSettings": {
+    "difficulty": "normal",
+    "language": "en",
+    "sound": true
+  },
+  "playerData": {
+    "playerName": "Player1",
+    "level": 5,
+    "score": 1000,
+    "hasSavedGame": true,
+    "inventory": [
       {
         "item": "sword",
-        "description": "A sharp sword, it's well balanced and gleams in the light.",
-        "conditions": ["repaired: true"]
+        "quantity": 1
       },
       {
         "item": "healthPotion",
-        "description": "A potion that heals the user, it glows faintly.",
-        "conditions": []
+        "quantity": 3
       },
       {
-        "item": "Wooden Staff",
-        "description": "An old, enchanted wooden staff. It hums with a subtle magic.",
-        "conditions": []
+        "item": "wooden staff",
+        "quantity": 1
       }
     ],
-    "areas": [
-      {
-        "areaId": 1,
-        "name": "Village Square",
-        "description": "A peaceful square in the village, with shops and a fountain.",
-        "localArea": "village",
-        "realm": "Earth",
-        "environment": {
-          "light": "daylight",
-          "weather": "clear"
-        },
-        "npcs": [
-          {
-            "npcId": 1,
-            "name": "Old Man",
-            "description": "An old man with a long white beard, he knows many stories.",
-            "dialogue": [
-              "Welcome to the village.",
-              "Beware of the forest."
-            ],
-            "commands": [
-              {
-                "command": "talk",
-                "description": "Talk to the Old Man.",
-                "response": "The Old Man tells you stories about the village.",
-                "condition": null,
-                "actionTrigger": {
-                  "type": "area",
-                  "action": "spokenToOldMan",
-                  "value": true
-                }
-              },
-              {
-                "command": "ask about forest",
-                "description": "Ask the Old Man about the forest.",
-                "response": "He warns you to stay away from the dark forest.",
-                "condition": null,
-                "actionTrigger": {
-                  "type": "area",
-                  "action": "askedAboutForest",
-                  "value": true
-                }
-              }
-            ]
-          }
-        ],
-        "items": [
-          {
-            "itemId": 1,
-            "name": "Golden Coin",
-            "description": "A shiny gold coin, looks valuable.",
-            "quantity": 5,
-            "commands": [
-              {
-                "command": "pick up",
-                "description": "Pick up the Golden Coin.",
-                "response": "You pick up the coin and add it to your inventory.",
-                "condition": null,
-                "actionTrigger": {
-                  "type": "area",
-                  "action": "pickedUpGoldenCoin",
-                  "value": true
-                }
-              },
-              {
-                "command": "look",
-                "description": "Look at the Golden Coin.",
-                "response": "The coin glints in the sunlight, its value unknown.",
-                "condition": null
-              }
-            ]
-          }
-        ],
-        "secrets": [
-          {
-            "secretId": 1,
-            "name": "Hidden Passage",
-            "description": "A hidden passage behind the fountain, leads to the forest.",
-            "discovery": "Press the fountain button.",
-            "commands": [
-              {
-                "command": "look",
-                "description": "Look at the fountain.",
-                "response": "You notice a strange button on the side of the fountain.",
-                "condition": null
-              },
-              {
-                "command": "press button",
-                "description": "Press the button on the fountain.",
-                "response": "The fountain moves aside, revealing a hidden passage.",
-                "condition": null,
-                "actionTrigger": {
-                  "type": "area",
-                  "action": "revealedHiddenPassage",
-                  "value": true
-                }
-              }
-            ]
-          }
-        ],
-        "exits": {
-          "north": 2,
-          "south": 3,
-          "east": 4,
-          "west": 5,
-          "up": null,
-          "down": null,
-          "teleport": null,
-          "commands": [
-            {
-              "command": "go north",
-              "description": "Move north to the next area.",
-              "response": "You walk north towards the forest.",
-              "condition": null,
-              "isOpen": true
-            },
-            {
-              "command": "go south",
-              "description": "Move south to the village.",
-              "response": "You walk south, returning to the village square.",
-              "condition": null,
-              "isOpen": true
-            }
-          ]
-        },
-        "completedAreaActions": {
-          "spokenToOldMan": false,
-          "askedAboutForest": false,
-          "revealedHiddenPassage": false
-        }
+    "conditions": {
+      "health": 100,
+      "mana": 50,
+      "stamina": 75,
+      "isInCombat": false
+    },
+    "completedActions": {
+      "vanquishedDragon": false,
+      "usedWoodenStaffInStump": false
+    },
+    "discoveredSecrets": []
+  },
+  "inventoryDescriptions": [
+    {
+      "item": "sword",
+      "description": "A sharp sword, it's well balanced and gleams in the light.",
+      "conditions": [{"type": "repaired", "value": true}]
+    },
+    {
+      "item": "healthPotion",
+      "description": "A potion that heals the user, it glows faintly.",
+      "conditions": []
+    },
+    {
+      "item": "wooden staff",
+      "description": "An old, enchanted wooden staff. It hums with a subtle magic.",
+      "conditions": []
+    }
+  ],
+  "areas": [
+    {
+      "areaId": 1,
+      "name": "Village Square",
+      "description": "A peaceful square in the village, with shops and a fountain.",
+      "localArea": "village",
+      "realm": "Earth",
+      "environment": {
+        "light": "daylight",
+        "weather": "clear"
       },
-      {
-        "areaId": 2,
-        "name": "Dark Forest",
-        "description": "A dense and dark forest with twisted trees and eerie sounds.",
-        "localArea": "forest",
-        "realm": "Earth",
-        "environment": {
-          "light": "dark",
-          "weather": "rain"
-        },
-        "npcs": [
+      "exits": {
+        "north": 2,
+        "south": 3,
+        "east": 4,
+        "west": 5,
+        "teleport": null,
+        "commands": [
           {
-            "npcId": 2,
-            "name": "Forest Spirit",
-            "description": "A mystical spirit that guides lost travelers.",
-            "dialogue": [
-              "The forest is dangerous. Stay on the path.",
-              "Follow the light if you wish to find your way out."
-            ],
-            "commands": [
-              {
-                "command": "talk",
-                "description": "Talk to the Forest Spirit.",
-                "response": "The spirit warns you of the dangers of straying from the path.",
-                "condition": null
-              },
-              {
-                "command": "ask about light",
-                "description": "Ask the Forest Spirit about the light.",
-                "response": "The spirit tells you to follow the glow of the mushrooms.",
-                "condition": null
-              }
-            ]
-          }
-        ],
-        "items": [
+            "command": "go north",
+            "description": "Move north to the next area.",
+            "response": "You walk north towards the forest.",
+            "condition": null,
+            "isOpen": true
+          },
           {
-            "itemId": 2,
-            "name": "Wooden Staff",
-            "description": "A simple wooden staff, it seems enchanted.",
-            "quantity": 1,
-            "commands": [
-              {
-                "command": "pick up",
-                "description": "Pick up the Wooden Staff.",
-                "response": "You pick up the wooden staff, feeling a slight hum of magic.",
-                "condition": null
-              },
-              {
-                "command": "look",
-                "description": "Look at the Wooden Staff.",
-                "response": "The staff is old, but there’s something magical about it.",
-                "condition": null
-              }
-            ]
+            "command": "go south",
+            "description": "Move south to the village.",
+            "response": "You walk south, returning to the village square.",
+            "condition": null,
+            "isOpen": true
           }
-        ],
-        "secrets": [
-          {
-            "secretId": 2,
-            "name": "Tree Stump Portal",
-            "description": "A glowing stump that serves as a portal to another realm.",
-            "discovery": "Place the Wooden Staff in the stump.",
-            "commands": [
-              {
-                "command": "look",
-                "description": "Look at the tree stump.",
-                "response": "The stump glows faintly, it seems to beckon you.",
-                "condition": null
-              },
-              {
-                "command": "place staff in stump",
-                "description": "Place the Wooden Staff in the tree stump.",
-                "response": "The stump opens up, creating a glowing portal.",
-                "requiredItems": ["Wooden Staff"],
-                "completedAreaAction": "placedStaffInStump",
-                "actionTrigger": {
-                  "type": "area",
-                  "action": "placedStaffInStump",
-                  "value": true
-                },
-                "condition": null
-              }
-            ]
-          }
-        ],
-        "exits": {
-          "north": null,
-          "south": 1,
-          "east": null,
-          "west": null,
-          "up": null,
-          "down": null,
-          "teleport": 3,
+        ]
+      }
+    },
+    {
+      "areaId": 2,
+      "name": "Dark Forest",
+      "description": "A dense and dark forest with twisted trees and eerie sounds.",
+      "localArea": "forest",
+      "realm": "Earth",
+      "environment": {
+        "light": "dark",
+        "weather": "rain"
+      },
+      "secrets": [
+        {
+          "secretId": 2,
+          "name": "Tree Stump Portal",
+          "description": "A glowing stump that serves as a portal to another realm.",
+          "discovery": "Place the Wooden Staff in the stump.",
           "commands": [
             {
-              "command": "go south",
-              "description": "Move south to the village.",
-              "response": "You walk south back towards the village square.",
-              "condition": null,
-              "isOpen": true
+              "command": "look",
+              "description": "Look at the tree stump.",
+              "response": "The stump glows faintly, it seems to beckon you.",
+              "condition": null
             },
             {
-              "command": "teleport",
-              "description": "Teleport to another area.",
-              "response": "You step into the glowing portal and disappear.",
-              "condition": "placedStaffInStump",
-              "actionTrigger": {
-                "type": "area",
-                "action": "teleportedToOtherArea",
-                "value": true
-              },
-              "isOpen": true
+              "command": "place staff in stump",
+              "description": "Place the Wooden Staff in the tree stump.",
+              "response": "The stump opens up, creating a glowing portal.",
+              "condition": {"type": "hasItem", "item": "wooden staff", "quantity": 1},
+              "actionTrigger": [
+                {"type": "area", "action": "placedStaffInStump", "value": true},
+                {"type": "player", "action": "discoveredPortal", "value": true}
+              ]
             }
           ]
-        },
-        "completedAreaActions": {
-          "placedStaffInStump": false
         }
+      ],
+      "exits": {
+        "north": null,
+        "south": 1,
+        "teleport": {
+          "destination": 3,
+          "condition": "placedStaffInStump",
+          "isReusable": false
+        },
+        "commands": [
+          {
+            "command": "go south",
+            "description": "Move south to the village.",
+            "response": "You walk south back towards the village square.",
+            "condition": null,
+            "isOpen": true
+          },
+          {
+            "command": "teleport",
+            "description": "Teleport to another area.",
+            "response": "You step into the glowing portal and disappear.",
+            "condition": {"type": "hasItem", "item": "wooden staff", "quantity": 1},
+            "actionTrigger": [
+              {"type": "area", "action": "teleportedToOtherArea", "value": true}
+            ],
+            "isOpen": true
+          }
+        ]
       }
-    ]
-  }
+    }
+  ]
+}
