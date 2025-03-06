@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Terminal.css'; // Assuming you will add styling here
+import './game.js'
 
 function Terminal({ onQuit }) {
   const [input, setInput] = useState('');

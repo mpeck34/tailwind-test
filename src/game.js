@@ -43,14 +43,13 @@ function handleCommand(input) {
 }
 
 function handleAction(command, currentArea) {
-  if (command.actionTrigger) {
-    const { type, action, value } = command.actionTrigger;
+  command.actionTrigger.forEach(({ type, action, value }) => {
     if (type === 'area') {
       currentArea.completedAreaActions[action] = value;
     } else if (type === 'player') {
       playerData.completedActions[action] = value;
     }
-  }
+  });
 
   switch (command.command) {
     case 'go south':
@@ -80,10 +79,13 @@ function handleAction(command, currentArea) {
 
 function checkCondition(condition) {
   if (!condition) return true;
-  if (condition.startsWith('hasItem:')) {
-    const itemName = condition.split(':')[1];
-    return playerData.inventory.some(item => item.item === itemName);
+  
+  if (typeof condition === "object") {
+    if (condition.type === "hasItem") {
+      return playerData.inventory.some(item => item.item === condition.item && item.quantity >= condition.quantity);
+    }
   }
+  
   return playerData.completedActions[condition] || false;
 }
 
