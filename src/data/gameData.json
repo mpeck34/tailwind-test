@@ -139,7 +139,33 @@
         "south": 3,
         "east": 4,
         "west": 5,
-        "teleport": null
+        "teleport": null,
+        "commands": [
+          {
+            "command": "go north",
+            "description": "Move to the north exit.",
+            "response": "You head towards the northern path.",
+            "condition": null
+          },
+          {
+            "command": "go south",
+            "description": "Move to the south exit.",
+            "response": "You walk towards the southern path.",
+            "condition": null
+          },
+          {
+            "command": "go east",
+            "description": "Move to the east exit.",
+            "response": "You travel to the eastern path.",
+            "condition": null
+          },
+          {
+            "command": "go west",
+            "description": "Move to the west exit.",
+            "response": "You move toward the western path.",
+            "condition": null
+          }
+        ]
       },
       "completedAreaActions": {
         "spokenToOldMan": false,
@@ -215,7 +241,18 @@
           "destination": 3,
           "condition": "placedStaffInStump",
           "isReusable": false
-        }
+        },
+        "commands": [
+          {
+            "command": "use portal",
+            "description": "Use the portal in the tree stump.",
+            "response": "You place the Wooden Staff in the stump and the portal opens.",
+            "condition": { "type": "hasItem", "item": "wooden staff", "quantity": 1 },
+            "actionTrigger": [
+              { "type": "area", "action": "teleportToNextArea", "value": true }
+            ]
+          }
+        ]
       },
       "completedAreaActions": {
         "placedStaffInStump": false
