@@ -60,6 +60,26 @@
           "dialogue": [
             "Welcome to the village.",
             "Beware of the forest."
+          ],
+          "commands": [
+            {
+              "command": "talk",
+              "description": "Talk to the Old Man.",
+              "response": "The Old Man tells you stories about the village.",
+              "condition": null,
+              "actionTrigger": [
+                { "type": "area", "action": "spokenToOldMan", "value": true }
+              ]
+            },
+            {
+              "command": "ask about forest",
+              "description": "Ask the Old Man about the forest.",
+              "response": "He warns you to stay away from the dark forest.",
+              "condition": null,
+              "actionTrigger": [
+                { "type": "area", "action": "askedAboutForest", "value": true }
+              ]
+            }
           ]
         }
       ],
@@ -68,23 +88,63 @@
           "itemId": 1,
           "name": "Golden Coin",
           "description": "A shiny gold coin, looks valuable.",
-          "quantity": 5
+          "quantity": 5,
+          "commands": [
+            {
+              "command": "pick up",
+              "description": "Pick up the Golden Coin.",
+              "response": "You pick up the coin and add it to your inventory.",
+              "condition": null,
+              "actionTrigger": [
+                { "type": "area", "action": "pickedUpGoldenCoin", "value": true }
+              ]
+            },
+            {
+              "command": "look",
+              "description": "Look at the Golden Coin.",
+              "response": "The coin glints in the sunlight, its value unknown.",
+              "condition": null
+            }
+          ]
+        }
+      ],
+      "secrets": [
+        {
+          "secretId": 1,
+          "name": "Hidden Passage",
+          "description": "A hidden passage behind the fountain, leads to the forest.",
+          "discovery": "Press the fountain button.",
+          "commands": [
+            {
+              "command": "look",
+              "description": "Look at the fountain.",
+              "response": "You notice a strange button on the side of the fountain.",
+              "condition": null
+            },
+            {
+              "command": "press button",
+              "description": "Press the button on the fountain.",
+              "response": "The fountain moves aside, revealing a hidden passage.",
+              "condition": null,
+              "actionTrigger": [
+                { "type": "area", "action": "revealedHiddenPassage", "value": true }
+              ]
+            }
+          ]
         }
       ],
       "exits": {
         "north": 2,
         "south": 3,
         "east": 4,
-        "west": 5
+        "west": 5,
+        "teleport": null
       },
-      "secrets": [
-        {
-          "secretId": 1,
-          "name": "Hidden Passage",
-          "description": "A hidden passage behind the fountain, leads to the forest.",
-          "discovery": "Press the fountain button."
-        }
-      ]
+      "completedAreaActions": {
+        "spokenToOldMan": false,
+        "askedAboutForest": false,
+        "revealedHiddenPassage": false
+      }
     },
     {
       "areaId": 2,
@@ -100,7 +160,25 @@
         {
           "npcId": 2,
           "name": "Forest Spirit",
-          "description": "A mystical spirit that guides lost travelers."
+          "description": "A mystical spirit that guides lost travelers.",
+          "dialogue": [
+            "The forest is dangerous. Stay on the path.",
+            "Follow the light if you wish to find your way out."
+          ],
+          "commands": [
+            {
+              "command": "talk",
+              "description": "Talk to the Forest Spirit.",
+              "response": "The spirit warns you of the dangers of straying from the path.",
+              "condition": null
+            },
+            {
+              "command": "ask about light",
+              "description": "Ask the Forest Spirit about the light.",
+              "response": "The spirit tells you to follow the glow of the mushrooms.",
+              "condition": null
+            }
+          ]
         }
       ],
       "secrets": [
@@ -108,7 +186,25 @@
           "secretId": 2,
           "name": "Tree Stump Portal",
           "description": "A glowing stump that serves as a portal to another realm.",
-          "discovery": "Place the Wooden Staff in the stump."
+          "discovery": "Place the Wooden Staff in the stump.",
+          "commands": [
+            {
+              "command": "look",
+              "description": "Look at the tree stump.",
+              "response": "The stump glows faintly, it seems to beckon you.",
+              "condition": null
+            },
+            {
+              "command": "place staff in stump",
+              "description": "Place the Wooden Staff in the tree stump.",
+              "response": "The stump opens up, creating a glowing portal.",
+              "condition": { "type": "hasItem", "item": "wooden staff", "quantity": 1 },
+              "actionTrigger": [
+                { "type": "area", "action": "placedStaffInStump", "value": true },
+                { "type": "player", "action": "discoveredPortal", "value": true }
+              ]
+            }
+          ]
         }
       ],
       "exits": {
@@ -119,6 +215,9 @@
           "condition": "placedStaffInStump",
           "isReusable": false
         }
+      },
+      "completedAreaActions": {
+        "placedStaffInStump": false
       }
     }
   ]
