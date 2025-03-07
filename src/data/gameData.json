@@ -12,29 +12,41 @@
     "currentArea": 1,
     "inventory": [
       {
-        "item": "sword",
-        "description": "A sharp sword, it's well balanced and gleams in the light.",
-        "conditions": [{"type": "repaired", "value": true}],
-        "quantity": 1
+        "name": "Sticky Sap",
+        "description": "A gooey blob of sap clings to your fingers.",
+        "lookBlurbs": [
+          "It's stickier than a tax collector's handshake.",
+          "You're not sure if it's alive or just really clingy.",
+          "Smells like a tree had a bad day.",
+          "You try to shake it off, but it's stubborn as a mule."
+        ],
+        "conditions": { "isSticky": true, "isSmelly": true }
       },
       {
-        "item": "healthPotion",
-        "description": "A potion that heals the user, it glows faintly.",
-        "conditions": [],
-        "quantity": 3
+        "name": "Torch",
+        "description": "A wooden torch, warm in your grip.",
+        "lookBlurbs": [
+          "It flickers like it's plotting something.",
+          "Smells faintly of burnt dreams.",
+          "You wonder how long it'll last before you're in the dark again.",
+          "It's a stick that's really into fire."
+        ],
+        "conditions": { "isLit": false, "isSticky": false }
       },
       {
-        "item": "wooden staff",
-        "description": "An old, enchanted wooden staff. It hums with a subtle magic.",
-        "conditions": [],
-        "quantity": 1
+        "name": "Golden Coin",
+        "description": "A shiny coin rests in your palm.",
+        "lookBlurbs": [
+          "It glints like it's mocking your empty pockets.",
+          "Feels heavier than your conscience.",
+          "You flip it and call heads—nobody cares.",
+          "Looks like it's seen more adventures than you."
+        ],
+        "conditions": { "isSticky": false, "isCursed": false }
       }
     ],
     "conditions": {
-      "health": 100,
-      "mana": 50,
-      "stamina": 75,
-      "isInCombat": false
+      "isCursed":false
     },
     "completedActions": {
       "vanquishedDragon": false,
@@ -49,128 +61,143 @@
       "description": "A peaceful square in the village, with shops and a fountain.",
       "localArea": "village",
       "realm": "Earth",
+      "conditions": {
+        "hasBeenVisited": false,
+        "isLit": true,
+        "isFlooded": false,
+        "isTrapped": false,
+        "spokenToOldMan": false,
+        "askedAboutForest": false,
+        "revealedHiddenPassage": false,
+        "villagersAngry": false
+      },
       "environment": {
-        "light": "daylight",
-        "weather": "clear"
+        "additives": [
+          { "condition": { "isLit": false }, "text": "The square is shrouded in darkness." },
+          { "condition": { "isLit": true }, "text": "The square is bathed in warm light." },
+          { "condition": { "isFlooded": true }, "text": "Water pools around the fountain and shops." },
+          { "condition": { "villagersAngry": true }, "text": "The villagers glare at you from their doorways." }
+        ]
       },
       "npcs": [
         {
           "npcId": 1,
           "name": "Old Man",
           "description": "An old man with a long white beard, he knows many stories.",
+          "conditions": {
+            "isFriendly": true,
+            "hasMetPlayer": false,
+            "knowsSecret": true,
+            "isAwake": true,
+            "isHostile": false
+          },
           "interactions": [
-            {
-              "condition": null,
-              "text": "Welcome to the village."
-            },
-            {
-              "condition": { "spokenToOldMan": true },
-              "text": "I have more to tell you."
-            }
+            { "condition": null, "text": "Welcome to the village." },
+            { "condition": { "hasMetPlayer": true }, "text": "Good to see you again." },
+            { "condition": { "spokenToOldMan": true }, "text": "I have more to tell you." },
+            { "condition": { "villagersAngry": true }, "text": "You’ve upset the village, haven’t you?" }
           ],
           "commands": [
             {
               "command": "talk",
               "description": "Talk to the Old Man.",
               "response": "The Old Man tells you stories about the village.",
-              "condition": null,
+              "condition": { "isFriendly": true, "isAwake": true },
               "actionTrigger": [
-                { "type": "area", "action": "spokenToOldMan", "value": true }
+                { "action": "setCondition", "target": "areas.areaId:1", "condition": "spokenToOldMan", "value": true },
+                { "action": "setCondition", "target": "areas.areaId:1.npcs.npcId:1", "condition": "hasMetPlayer", "value": true }
               ]
             },
             {
               "command": "talk",
               "description": "Ask the Old Man about the forest.",
               "response": "He warns you to stay away from the dark forest.",
-              "condition": {"spokenToOldMan": true},
+              "condition": { "spokenToOldMan": true, "isFriendly": true },
               "actionTrigger": [
-                { "type": "area", "action": "askedAboutForest", "value": true }
+                { "action": "setCondition", "target": "areas.areaId:1", "condition": "askedAboutForest", "value": true }
               ]
             }
           ]
         }
-      ],     
-        "items": [
-          {
-            "itemId": 1,
-            "name": "Golden Coin",
-            "description": "A shiny gold coin, looks valuable.",
-            "quantity": 5,
-            "interactions": [
-              {
-                "condition": { "lookedAtGoldenCoin": true, "pickedUpGoldenCoin": false },
-                "text": "YThe coin continues to lie on the ground, glinting at you."
-              }
-            ],
-            "commands": [
-              {
-                "command": "take",
-                "description": "Pick up the Golden Coin.",
-                "response": "You pick up the coin and add it to your inventory.",
-                "conditions": [
-                  { "pickedUpGoldenCoin": false }
-                ],
-                "actionTrigger": [
-                  {
-                    "action": "setCondition",
-                    "target": "playerData",
-                    "condition": "pickedUpGoldenCoin",
-                    "value": true
-                  },
-                  {
-                    "action": "removeItem",
-                    "target": "areas.areaId:1.items.itemId:1",
-                    "value": 1
-                  }
-                ]
-              },
-              {
-                "command": "look",
-                "description": "Look at the Golden Coin.",
-                "response": "The coin glints in the sunlight, its value unknown.",
-                "conditions": [
-                  { "pickedUpGoldenCoin": false }
-                ],
-                "actionTrigger": [
-                  {
-                    "action": "setCondition",
-                    "target": "playerData",
-                    "condition": "lookedAtGoldenCoin",
-                    "value": true
-                  }
-                ]
-              },
-              {
-                "command": "look",
-                "description": "Look closer at the Golden Coin.",
-                "response": "As you look closer at the coin, you can see something engraved upon it.",
-                "conditions": [
-                  { "lookedAtGoldenCoin": true }
-                ]
-              }
-            ]
-          }
-        ],
+      ],
+      "items": [
+        {
+          "itemId": 1,
+          "name": "Golden Coin",
+          "description": "A shiny gold coin, looks valuable.",
+          "quantity": 1,
+          "conditions": {
+            "isHidden": false,
+            "isSticky": false,
+            "isCursed": false,
+            "pickedUpGoldenCoin": false,
+            "lookedAtGoldenCoin": false
+          },
+          "interactions": [
+            {
+              "condition": { "lookedAtGoldenCoin": true, "pickedUpGoldenCoin": false },
+              "text": "The coin continues to lie on the ground, glinting at you menacingly... Well, not that menacingly."
+            },
+            {
+              "condition": { "isCursed": true },
+              "text": "The coin feels unnaturally cold in your presence."
+            }
+          ],
+          "commands": [
+            {
+              "command": "take",
+              "description": "Pick up the Golden Coin.",
+              "response": "You pick up the coin and add it to your inventory.",
+              "condition": { "pickedUpGoldenCoin": false },
+              "actionTrigger": [
+                { "action": "setCondition", "target": "areas.areaId:1.items.itemId:1", "condition": "pickedUpGoldenCoin", "value": true },
+                { "action": "removeItem", "target": "areas.areaId:1.items.itemId:1", "value": true },
+                { "action": "setCondition", "target": "areas.areaId:1", "condition": "villagersAngry", "value": true }
+              ]
+            },
+            {
+              "command": "look",
+              "description": "Look at the Golden Coin.",
+              "response": "The coin glints in the sunlight, its value unknown.",
+              "condition": { "pickedUpGoldenCoin": false },
+              "actionTrigger": [
+                { "action": "setCondition", "target": "areas.areaId:1.items.itemId:1", "condition": "lookedAtGoldenCoin", "value": true }
+              ]
+            },
+            {
+              "command": "look",
+              "description": "Look closer at the Golden Coin.",
+              "response": "As you look closer at the coin, you can see something engraved upon it.",
+              "condition": { "lookedAtGoldenCoin": true, "pickedUpGoldenCoin": false }
+            }
+          ]
+        }
+      ],
       "secrets": [
         {
           "secretId": 1,
           "name": "Hidden Passage",
           "description": "A hidden passage behind the fountain, leads to the forest.",
           "discovery": "Press the fountain button.",
+          "conditions": {
+            "isHidden": true,
+            "revealedHiddenPassage": false
+          },
           "commands": [
             {
-              "command": "look",
+              "command": "look fountain",
               "description": "Look at the fountain.",
               "response": "You notice a strange button on the side of the fountain.",
-              "conditions": {"revealedHiddenPassage": true}
+              "condition": { "revealedHiddenPassage": false }
             },
             {
               "command": "press button",
               "description": "Press the button on the fountain.",
               "response": "The fountain moves aside, revealing a hidden passage.",
-              "conditions": null,
+              "condition": { "revealedHiddenPassage": false },
               "actionTrigger": [
-                { "type": "area", "action": "revealedHiddenPassage", "value": true }
+                { "action": "setCondition", "target": "areas.areaId:1", "condition": "revealedHiddenPassage", "value": true },
+                { "action": "setCondition", "target": "areas.areaId:1.secrets.secretId:1", "condition": "isHidden", "value": false }
               ]
             }
           ]
@@ -181,7 +208,10 @@
         "south": 3,
         "east": 4,
         "west": 5,
+        "up": null,
+        "down": null,
         "teleport": null,
+        "passage": 2,
         "commands": [
           {
             "command": "go north",
@@ -206,13 +236,35 @@
             "description": "Move to the west exit.",
             "response": "You move toward the western path.",
             "condition": null
+          },
+          {
+            "command": "go up",
+            "description": "Climb up to a higher level.",
+            "response": "There’s nothing to climb here.",
+            "condition": null
+          },
+          {
+            "command": "go down",
+            "description": "Descend to a lower level.",
+            "response": "There’s no way down from here.",
+            "condition": null
+          },
+          {
+            "command": "use teleport",
+            "description": "Use a teleportation method.",
+            "response": "There’s no teleportation method here.",
+            "condition": null
+          },
+          {
+            "command": "go passage",
+            "description": "Enter the hidden passage.",
+            "response": "You slip through the passage to the forest.",
+            "condition": { "revealedHiddenPassage": true },
+            "actionTrigger": [
+              { "action": "setPlayerArea", "target": "playerData", "areaId": 2 }
+            ]
           }
         ]
-      },
-      "completedAreaActions": {
-        "spokenToOldMan": false,
-        "askedAboutForest": false,
-        "revealedHiddenPassage": false
       }
     },
     {
@@ -298,6 +350,58 @@
       },
       "completedAreaActions": {
         "placedStaffInStump": false
+      }
+    },
+    {
+      "areaId": 3,
+      "name": "Underground Cave",
+      "description": "You're in an underground cave.",
+      "conditions": {
+        "isLit": false,
+        "isFlooded": false,
+        "hasBeenVisited": false
+      },
+      "environment": {
+        "additives": [
+          {
+            "condition": { "isLit": false },
+            "text": "The cave is dark."
+          },
+          {
+            "condition": { "isLit": true },
+            "text": "The cave is lit by your torch."
+          },
+          {
+            "condition": { "isFlooded": true },
+            "text": "The air is damp and water pools at your feet."
+          },
+          {
+            "condition": { "hasBeenVisited": true },
+            "text": "The familiar echoes greet you again."
+          }
+        ]
+      },
+      "items": [
+        {
+          "name": "Torch",
+          "description": "A wooden torch, unlit.",
+          "conditions": { "isLit": false, "isSticky": false },
+          "commands": [
+            {
+              "command": "light",
+              "response": "You light the torch, casting a warm glow.",
+              "condition": { "isLit": false },
+              "actionTrigger": [
+                { "action": "setCondition", "target": "areas.areaId:3", "condition": "isLit", "value": true },
+                { "action": "setCondition", "target": "items.name:Torch", "condition": "isLit", "value": true }
+              ]
+            }
+          ]
+        }
+      ],
+      "exits": {
+        "north": 1,
+        "conditions": { "isDark": true }
       }
     }
   ]

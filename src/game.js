@@ -7,96 +7,91 @@ function displayArea(areaId) {
   const area = areaData.find(area => area.areaId === areaId);
   if (!area) return ['Area not found.'];
 
-  let output = [];
-  output.push(area.description);
+  let output = [area.description];
 
-  if (area.items.length > 0) {
-    output.push('\nYou see ');
-    area.items.forEach(item => output.push(` ${item.description}`));
+  // Append environmental additives
+  if (area.environment?.additives) {
+    area.environment.additives.forEach(additive => {
+      if (checkCondition(additive.condition, area)) {
+        output.push(additive.text);
+      }
+    });
   }
 
-  if (area.npcs.length > 0) {
-    area.npcs.forEach(npc => output.push(`${npc.description}`));
+  if (area.items?.length > 0) {
+    output.push('\nYou see:');
+    area.items.forEach(item => output.push(`- ${item.description}`));
   }
 
-  /*
-  output.push(`\nYou are in: ${area.name}`);
-  output.push(area.description);
-
-  if (area.items.length > 0) {
-    output.push('\nItems here:');
-    area.items.forEach(item => output.push(`- ${item.name}: ${item.description}`));
+  if (area.npcs?.length > 0) {
+    output.push('\nPresent:');
+    area.npcs.forEach(npc => output.push(`- ${npc.description}`));
   }
-
-  if (area.npcs.length > 0) {
-    output.push('\nNPCs here:');
-    area.npcs.forEach(npc => output.push(`- ${npc.name}: ${npc.description}`));
-  }
-
-  output.push('\nCommands available:');
-  const allCommands = [
-    ...area.exits.commands, 
-    ...area.items.flatMap(i => i.commands), 
-    ...area.npcs.flatMap(n => n.commands), 
-    ...area.secrets.flatMap(s => s.commands)
-  ];
-  allCommands.forEach(command => output.push(`- ${command.command}: ${command.description}`));
-*/
 
   return output;
 }
 
+// To check if a condition is fulfilled before an action -- needs update
+function checkCondition(condition, currentArea) {
+  if (!condition) return true;
+  for (const [key, value] of Object.entries(condition)) {
+    if (key === 'type' && condition.type === 'area') {
+      return currentArea.conditions[condition[key]] === value;
+    }
+    if (key === 'type' && condition.type === 'hasItem') {
+      const item = playerData.inventory.find(i => i.name === condition.item);
+      return item && item.quantity >= (condition.quantity || 1);
+    }
+    return (currentArea?.conditions?.[key] === value) || 
+           (playerData?.conditions?.[key] === value) || 
+           false;
+  }
+}
+
 function parseCommands(currentArea) {
   let parsedCommands = [];
+  // Exits
+  currentArea.exits.commands?.forEach(cmd => parsedCommands.push({
+    command: cmd.command,
+    response: cmd.response,
+    condition: cmd.condition,
+    actionTrigger: cmd.actionTrigger
+  }));
+  // Items
+  currentArea.items.forEach(item => item.commands.forEach(cmd => parsedCommands.push({
+    command: cmd.command,
+    item: item.name,
+    response: cmd.response,
+    condition: cmd.conditions,
+    actionTrigger: cmd.actionTrigger
+  })));
+  // NPCs
+  currentArea.npcs.forEach(npc => npc.commands.forEach(cmd => parsedCommands.push({
+    command: cmd.command,
+    npc: npc.name,
+    response: cmd.response,
+    condition: cmd.condition,
+    actionTrigger: cmd.actionTrigger
+  })));
+  // Secrets
+  currentArea.secrets.forEach(secret => secret.commands.forEach(cmd => parsedCommands.push({
+    command: cmd.command,
+    secret: secret.name,
+    response: cmd.response,
+    condition: cmd.conditions,
+    actionTrigger: cmd.actionTrigger
+  })));
 
-  // Parse exits
-  if (currentArea.exits) {
-    for (let exit in currentArea.exits) {
-      parsedCommands.push({
-        command: 'go',
-        exit: exit,
-        destination: currentArea.exits[exit]
-      });
-    }
-  }
-
-  // Parse items
-  currentArea.items.forEach(item => {
+  // Inventory commands
+  playerData.inventory.forEach(item => {
     parsedCommands.push({
-      command: 'look',
+      command: `inventory ${item.name.toLowerCase()}`,
       item: item.name,
-      description: item.description,
-      condition: item.conditions ? item.conditions : null
-    });
-
-    parsedCommands.push({
-      command: 'take',
-      item: item.name,
-      condition: item.conditions ? item.conditions : null
+      type: 'inventory',
+      condition: null // No condition needed, item is already in inventory
     });
   });
 
-  // Parse NPCs
-  currentArea.npcs.forEach(npc => {
-    parsedCommands.push({
-      command: 'talk',
-      npc: npc.name,
-      dialogue: npc.dialogue,
-      condition: null
-    });
-  });
-
-  // Parse secrets
-  currentArea.secrets.forEach(secret => {
-    parsedCommands.push({
-      command: 'look',
-      secret: secret.name,
-      description: secret.description,
-      condition: secret.conditions ? secret.conditions : null
-    });
-  });
-
-  console.log(parsedCommands);
   return parsedCommands;
 }
 
@@ -218,30 +213,23 @@ function handleTakeCommand(input, parsedCommands, currentArea) {
   let output = [];
 
   if (takeableItems.length > 0) {
-    const itemName = input.split(' ')[1];
-    const item = currentArea.items.find(i => i.name.toLowerCase() === itemName.toLowerCase());
-
+    const itemName = input.split(' ')[1]?.toLowerCase();
+    const item = currentArea.items.find(i => i.name.toLowerCase() === itemName);
     if (item) {
-      // Check if the item has a condition
-      if (!item.condition || checkCondition(item.condition)) {
-        // Check if the player already has the item in their inventory
-        const existingItem = playerData.inventory.find(i => i.item.toLowerCase() === itemName.toLowerCase());
+      if (!item.condition || checkCondition(item.condition, currentArea)) {
+        const existingItem = playerData.inventory.find(i => i.name.toLowerCase() === itemName);
+        const invItemTemplate = gameData.inventoryItems.find(i => i.name.toLowerCase() === itemName);
         if (existingItem) {
-          existingItem.quantity += item.quantity;  // Increase the quantity of the existing item
+          existingItem.quantity += item.quantity || 1;
         } else {
-          // Add the item to the inventory
           playerData.inventory.push({
-            item: item.name,
-            quantity: item.quantity,
-            description: item.description,
-            conditions: item.conditions || []
+            name: item.name,
+            quantity: item.quantity || 1,
+            conditions: invItemTemplate?.conditions || item.conditions || {}
           });
         }
-
-        // Remove the item from the current area
         const itemIndex = currentArea.items.indexOf(item);
         currentArea.items.splice(itemIndex, 1);
-
         output.push(`You take the ${itemName}.`);
       } else {
         output.push(`You can't take the ${itemName} right now.`);
@@ -253,10 +241,7 @@ function handleTakeCommand(input, parsedCommands, currentArea) {
     output.push('There are no items you can take here.');
   }
 
-  return {
-    needsFurtherInput: false, // No further input needed for the 'take' command
-    output: output
-  };
+  return { needsFurtherInput: false, output };
 }
 
 
@@ -320,6 +305,26 @@ function handlePullCommand(input, parsedCommands, currentArea) {
   };
 }
 
+// Handle Action Triggers
+function handleAction(command, currentArea) {
+  if (!command.actionTrigger) return;
+  command.actionTrigger.forEach(trigger => {
+    if (trigger.type === 'area') {
+      currentArea.completedAreaActions[trigger.action] = trigger.value;
+    } else if (trigger.type === 'player') {
+      playerData.completedActions[trigger.action] = trigger.value;
+    } else if (trigger.action === 'setCondition') {
+      const target = trigger.target === 'playerData' ? playerData.conditions : currentArea;
+      target[trigger.condition] = trigger.value;
+    } else if (trigger.action === 'removeItem') {
+      const [areaPath, itemPath] = trigger.target.split('.areaId:')[1].split('.items.itemId:');
+      const area = areaData.find(a => a.areaId === parseInt(areaPath));
+      const itemIndex = area.items.findIndex(i => i.itemId === parseInt(itemPath));
+      area.items.splice(itemIndex, 1);
+    }
+  });
+}
+
 // Main function for commands
 function handleCommand(input, isSecondInput) {
   const currentArea = areaData.find(area => area.areaId === playerData.currentArea);
@@ -378,18 +383,32 @@ function handleCommand(input, isSecondInput) {
     output = pullResult.output;
   }
 
+  // Handle inventory look
+  if (input.toLowerCase().startsWith('inventory ')) {
+    const target = input.toLowerCase().slice(5); // Remove "inventory "
+    const invCommand = parsedCommands.find(c => c.command === `inventory ${target}` && c.type === 'inventory');
+    if (invCommand) {
+      const invItem = gameData.inventoryItems.find(i => i.name.toLowerCase() === target);
+      if (invItem && invItem.lookBlurbs?.length) {
+        const randomBlurb = invItem.lookBlurbs[Math.floor(Math.random() * invItem.lookBlurbs.length)];
+        output.push(randomBlurb);
+      } else {
+        output.push(invItem?.description || `You see nothing special about the ${target}.`);
+      }
+      return { needsFurtherInput: false, output };
+    }
+  }
+
   // Check for other commands
   else {
-    const command = parsedCommands.find(c => c.command.toLowerCase() === input);
+    const command = parsedCommands.find(c => c.command.toLowerCase() === input.toLowerCase());
     if (command) {
       if (!command.condition || checkCondition(command.condition)) {
-        output.push(command.response || `You perform the action: ${input}.`);
+        output.push(command.response);
         handleAction(command, currentArea);
       } else {
         output.push('You cannot do that right now.');
       }
-    } else {
-      output.push(`Unknown command: "${input}".`);
     }
   }
 
@@ -397,6 +416,20 @@ function handleCommand(input, isSecondInput) {
     needsFurtherInput: false, // No more input needed unless indicated
     output: output
   };
+}
+
+// Display inventory
+function displayInventory() {
+  if (!playerData.inventory.length) return ['Your inventory is empty.'];
+
+  const output = ['\nYour inventory:'];
+  playerData.inventory.forEach(item => {
+    const invItem = gameData.inventoryItems.find(i => i.name === item.name);
+    if (invItem) {
+      output.push(`- ${invItem.description}`);
+    }
+  });
+  return output;
 }
 
 
