@@ -144,41 +144,41 @@ function parseCommands(currentArea) {
   return parsedCommands;
 }
 
-function handleLookCommand(input, parsedCommands) {
-  const lookableItems = parsedCommands.filter(c => c.command === 'look');
+function handleLookCommand(input, parsedCommands, currentArea) {
   let output = [];
+  const lookInput = input.toLowerCase().trim();
+
+  // If just "look" is entered, show the full area description
+  if (lookInput === 'look') {
+    output = displayArea(currentArea.areaId);
+    return { needsFurtherInput: false, output };
+  }
+
+  // Handle "look <target>" (e.g., "look golden coin")
+  const target = lookInput.replace('look', '').trim();
+  const lookableItems = parsedCommands.filter(c => c.command === 'look' && c.item?.toLowerCase() === target);
+  const lookableSecrets = parsedCommands.filter(c => c.command === 'look' && c.secret?.toLowerCase() === target);
 
   if (lookableItems.length > 0) {
-    output.push('What would you like to look at?');
-    
-    // Check each lookable item and secret for conditions
-    lookableItems.forEach(item => {
-      if (item.item) {
-        // If the item has a condition, check if it's met
-        if (!item.condition || checkCondition(item.condition, currentArea)) {
-          output.push(item.item);
-        } else {
-          output.push(`The ${item.item} is obscured.`);
-        }
-      }
-
-      if (item.secret) {
-        // If the secret has a condition, check if it's met
-        if (!item.condition || checkCondition(item.condition, currentArea)) {
-          output.push(item.secret);
-        } else {
-          output.push(`The secret is hidden.`);
-        }
-      }
-    });
-
-    return {
-      needsFurtherInput: true,  // Indicate that we expect more input
-      output: output
-    };
+    const itemMatch = lookableItems[0]; // Take the first matching response
+    if (!itemMatch.condition || checkCondition(itemMatch.condition)) {
+      output.push(itemMatch.response || `You see nothing special about the ${target}.`);
+    } else {
+      output.push(`The ${target} is obscured and hard to see.`);
+    }
+  } else if (lookableSecrets.length > 0) {
+    const secretMatch = lookableSecrets[0];
+    if (!secretMatch.condition || checkCondition(secretMatch.condition)) {
+      output.push(secretMatch.response || `You uncover the ${secretMatch.secret}.`);
+    } else {
+      output.push(`The secret remains hidden.`);
+    }
   } else {
-    output.push('There is nothing to look at.');
+    output.push(`You don’t see "${target}" to look at.`);
   }
+
+  return { needsFurtherInput: false, output };
+}
 
   return {
     needsFurtherInput: false, // No more input needed
@@ -192,8 +192,8 @@ function handleGoCommand(input, currentArea, parsedCommands) {
   const direction = input.split(' ')[1];
 
   if (direction) {
-    // Find the exit command from parsedCommands
-    const goCommand = currentArea.exits.commands?.find(cmd => cmd.command === `go ${direction}`);
+    // Ensure exits and commands exist before accessing them
+    const goCommand = currentArea?.exits?.commands?.find(cmd => cmd.command === `go ${direction}`);
 
     if (goCommand) {
       // Check if there are conditions for the exit
@@ -404,7 +404,7 @@ function handleCommand(input, isSecondInput) {
       const secretMatch = lookableItems.find(c => c.secret?.toLowerCase() === target);
 
       if (itemMatch) {
-        if (!itemMatch.condition || checkCondition(itemMatch.condition)) {
+        if (!itemMatch.condition || checkCondition(itemMatch.condition, currentArea)) {
           output.push(`You examine the ${itemMatch.item}. It looks ${itemMatch.response || 'ordinary.'}`);
         } else {
           output.push(`The ${itemMatch.item} is obscured and hard to see.`);
