@@ -9,6 +9,9 @@ function Terminal({ onQuit }) {
   const inputRef = useRef(null);
   const [waitingForInput, setWaitingForInput] = useState(false); // Track if we're waiting for further input
   const [commandState, setCommandState] = useState(null); // To track the state of the current command
+  const [isShaking, setIsShaking] = useState(false);
+  const [flickerIndex, setFlickerIndex] = useState(null);
+  const [glitchIndex, setGlitchIndex] = useState(null);
 
   useEffect(() => {
     // Display the starting area when the game loads
@@ -20,6 +23,44 @@ function Terminal({ onQuit }) {
       historyEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [history]);
+
+// Randomly pick a line to flicker from the last 10 lines whenever history updates
+useEffect(() => {
+  if (history.length > 0) {
+    // Reset flicker first to clear previous
+    setFlickerIndex(null);
+    // Use a slight delay to ensure reset applies before new flicker
+    setTimeout(() => {
+      const startIndex = Math.max(0, history.length - 10);
+      const eligibleLines = history.length - startIndex;
+      const randomOffset = Math.floor(Math.random() * eligibleLines);
+      const newFlickerIndex = startIndex + randomOffset;
+      setFlickerIndex(newFlickerIndex);
+    }, 0); // Zero delay ensures it runs after render
+  }
+}, [history]);
+
+// Random glitch every ~10 seconds
+useEffect(() => {
+  if (history.length === 0) return;
+
+  const glitchInterval = () => {
+    const startIndex = Math.max(0, history.length - 10);
+    const eligibleLines = history.length - startIndex;
+    const randomOffset = Math.floor(Math.random() * eligibleLines);
+    const newGlitchIndex = startIndex + randomOffset;
+
+    setGlitchIndex(newGlitchIndex);
+    setTimeout(() => setGlitchIndex(null), 500); // Glitch lasts 0.5s
+
+    // Random delay between 5-15 seconds (avg ~10s)
+    const nextGlitchDelay = 5000 + Math.random() * 10000;
+    return setTimeout(glitchInterval, nextGlitchDelay);
+  };
+
+  const timeoutId = glitchInterval();
+  return () => clearTimeout(timeoutId); // Cleanup on unmount or history change
+}, [history]);
 
   const handleInputSubmit = (e) => {
     e.preventDefault();
@@ -35,52 +76,66 @@ function Terminal({ onQuit }) {
       return;
     }
 
-    if (waitingForInput) {
-      // If we're waiting for user input, send the second part of the command
-      const result = handleCommand(input, true); // Pass `true` to indicate we’re continuing the input
-      setWaitingForInput(false); // Stop waiting for input after handling it
-      setInput(''); // Clear the input field
-      setHistory((prev) => [...prev, ...newHistory, ...result]); // Update the history with the response
-    } else {
-      // Otherwise, handle the initial command
-        const response = handleCommand(input.toLowerCase());
-
-        if (response.needsFurtherInput) {
-          // If the command expects further input (e.g., `look` for an item), set waiting for input
-          setWaitingForInput(true);
-          setCommandState(response.command); // Track the command for further handling
-        }
-
-        // Update the history with the response
-        setHistory((prev) => [...prev, ...newHistory, ...response.output]);
-
-        // Clear input
-        setInput('');
+    const response = handleCommand(input, waitingForInput);
+    if (!waitingForInput) {
+      if (response.needsFurtherInput) {
+        setWaitingForInput(true);
+        setCommandState(response.command);
       }
-    };
+      if (response.output.some((line) => line.toLowerCase().includes('error') || line.toLowerCase().includes('unknown'))) {
+        setIsShaking(true);
+        setTimeout(() => setIsShaking(false), 200);
+      }
+    } else {
+      setWaitingForInput(false);
+    }
 
-  return (
-    <div className="terminal-container" onClick={() => inputRef.current.focus()}>
-      <div className="terminal-history">
-        {history.map((line, index) => (
-          <div key={index} className="terminal-line">{line}</div>
-        ))}
-        <div ref={historyEndRef} />
+    setHistory((prev) => [...prev, ...newHistory, ...response.output]);
+    setInput('');
+  };
+
+    return (
+      <div className="terminal-outer-container">
+        <div
+          className={`terminal-container scanlines relative ${
+            isShaking ? 'animate-screen-glitch' : ''
+          }`}
+          onClick={() => inputRef.current.focus()}
+        >
+          <div className="terminal-history">
+            {history.map((line, index) => (
+              <div
+                key={index}
+                className={`terminal-line ${
+                  index === flickerIndex
+                    ? 'animate-flicker'
+                    : index === glitchIndex
+                    ? 'animate-glitch'
+                    : line.toLowerCase().includes('secret') || line.toLowerCase().includes('hidden')
+                    ? 'animate-glitch-static'
+                    : ''
+                }`}
+              >
+                {line}
+              </div>
+            ))}
+            <div ref={historyEndRef} />
+          </div>
+  
+          <form className="terminal-input" onSubmit={handleInputSubmit}>
+            <span className="prompt">{'>'}</span>
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              autoFocus
+              className="terminal-text-input"
+              ref={inputRef}
+            />
+          </form>
+        </div>
       </div>
-
-      <form className="terminal-input" onSubmit={handleInputSubmit}>
-        <span className="prompt">{'>'} </span>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          autoFocus
-          className="terminal-text-input"
-          ref={inputRef}
-        />
-      </form>
-    </div>
-  );
-}
+    );
+  }
 
 export default Terminal;

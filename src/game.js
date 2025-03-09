@@ -1,5 +1,6 @@
 import gameData from './data/gameData.json'; // Ensure correct path
 
+const inventoryDescriptions = gameData.inventoryDescriptions;
 const playerData = gameData.playerData;
 const areaData = gameData.areas;
 
@@ -18,34 +19,80 @@ function displayArea(areaId) {
     });
   }
 
-  if (area.items?.length > 0) {
-    output.push('\nYou see:');
-    area.items.forEach(item => output.push(`- ${item.description}`));
+  // Add visible items
+  const items = parseCommands(area).filter(c => c.command === 'look' && c.item);
+  if (items.length > 0) {
+    output.push("You see:");
+    items.forEach(item => {
+      if (!item.condition || checkCondition(item.condition, area)) {
+        output.push(`- ${item.item}`);
+      }
+    });
   }
 
-  if (area.npcs?.length > 0) {
-    output.push('\nPresent:');
-    area.npcs.forEach(npc => output.push(`- ${npc.description}`));
-  }
+  // Add visible NPCs
+    const npcs = parseCommands(area).filter(c => c.command === 'talk' && c.npc);
+    if (npcs.length > 0) {
+      output.push("Present:");
+      npcs.forEach(npc => {
+        if (!npc.condition || checkCondition(npc.condition, area)) {
+          output.push(`- ${npc.npc}`);
+        }
+      });
+    }
 
   return output;
 }
 
-// To check if a condition is fulfilled before an action -- needs update
 function checkCondition(condition, currentArea) {
+  // If no condition is provided, the action is allowed
   if (!condition) return true;
-  for (const [key, value] of Object.entries(condition)) {
-    if (key === 'type' && condition.type === 'area') {
-      return currentArea.conditions[condition[key]] === value;
-    }
-    if (key === 'type' && condition.type === 'hasItem') {
-      const item = playerData.inventory.find(i => i.name === condition.item);
-      return item && item.quantity >= (condition.quantity || 1);
-    }
-    return (currentArea?.conditions?.[key] === value) || 
-           (playerData?.conditions?.[key] === value) || 
-           false;
+
+  // If condition is an array, all sub-conditions must be true (AND logic)
+  if (Array.isArray(condition)) {
+    return condition.every(subCondition => checkCondition(subCondition, currentArea));
   }
+
+  // Handle different condition types
+  if (condition.type === 'areaCondition') {
+    return currentArea.conditions[condition.key] === condition.value;
+  }
+  if (condition.type === 'hasItem') {
+    const item = playerData.inventory.find(i => i.name === condition.item);
+    return item && item.quantity >= (condition.quantity || 1);
+  }
+  if (condition.type === 'playerCondition') {
+    return playerData.conditions[condition.key] === condition.value;
+  }
+  if (condition.type === 'itemCondition') {
+    const item = playerData.inventory.find(i => i.name === condition.item);
+    return item && item.conditions[condition.key] === condition.value;
+  }
+
+  // If the condition type is unknown, fail safely
+  return false;
+}
+
+function addItemToInventory(itemName) {
+  const itemDescription = inventoryDescriptions.find(item => item.name === itemName);
+  if (itemDescription) {
+    const newItem = {
+      name: itemDescription.name,
+      conditions: { ...itemDescription.defaultConditions } // Copy default conditions
+    };
+    playerData.inventory.push(newItem);
+  } else {
+    console.error(`Item "${itemName}" not found in inventoryDescriptions.`);
+  }
+}
+
+function lookAtItem(itemName) {
+  const itemDescription = inventoryDescriptions.find(item => item.name === itemName);
+  if (itemDescription) {
+    const randomBlurb = itemDescription.lookBlurbs[Math.floor(Math.random() * itemDescription.lookBlurbs.length)];
+    return [itemDescription.description, randomBlurb];
+  }
+  return [`You don't have a "${itemName}" in your inventory.`];
 }
 
 function parseCommands(currentArea) {
@@ -53,6 +100,7 @@ function parseCommands(currentArea) {
   // Exits
   currentArea.exits.commands?.forEach(cmd => parsedCommands.push({
     command: cmd.command,
+    exit: cmd.command === 'go' ? cmd.command.split(' ')[1] || null : null, // Extract direction
     response: cmd.response,
     condition: cmd.condition,
     actionTrigger: cmd.actionTrigger
@@ -62,7 +110,7 @@ function parseCommands(currentArea) {
     command: cmd.command,
     item: item.name,
     response: cmd.response,
-    condition: cmd.conditions,
+    condition: cmd.condition,
     actionTrigger: cmd.actionTrigger
   })));
   // NPCs
@@ -78,7 +126,7 @@ function parseCommands(currentArea) {
     command: cmd.command,
     secret: secret.name,
     response: cmd.response,
-    condition: cmd.conditions,
+    condition: cmd.condition,
     actionTrigger: cmd.actionTrigger
   })));
 
@@ -92,6 +140,7 @@ function parseCommands(currentArea) {
     });
   });
 
+  console.log(parsedCommands);
   return parsedCommands;
 }
 
@@ -106,7 +155,7 @@ function handleLookCommand(input, parsedCommands) {
     lookableItems.forEach(item => {
       if (item.item) {
         // If the item has a condition, check if it's met
-        if (!item.condition || checkCondition(item.condition)) {
+        if (!item.condition || checkCondition(item.condition, currentArea)) {
           output.push(item.item);
         } else {
           output.push(`The ${item.item} is obscured.`);
@@ -115,7 +164,7 @@ function handleLookCommand(input, parsedCommands) {
 
       if (item.secret) {
         // If the secret has a condition, check if it's met
-        if (!item.condition || checkCondition(item.condition)) {
+        if (!item.condition || checkCondition(item.condition, currentArea)) {
           output.push(item.secret);
         } else {
           output.push(`The secret is hidden.`);
@@ -137,7 +186,6 @@ function handleLookCommand(input, parsedCommands) {
   };
 }
 
-
 // Go command
 function handleGoCommand(input, currentArea, parsedCommands) {
   let output = [];
@@ -145,11 +193,11 @@ function handleGoCommand(input, currentArea, parsedCommands) {
 
   if (direction) {
     // Find the exit command from parsedCommands
-    const goCommand = parsedCommands.find(command => command.command === 'go' && command.exit === direction);
+    const goCommand = currentArea.exits.commands?.find(cmd => cmd.command === `go ${direction}`);
 
     if (goCommand) {
       // Check if there are conditions for the exit
-      if (goCommand.condition && !checkCondition(goCommand.condition)) {
+      if (goCommand.condition && !checkCondition(goCommand.condition, currentArea)) {
         output.push(`You cannot go ${direction} right now.`);
       } else {
         const exit = currentArea.exits[direction];
@@ -159,14 +207,14 @@ function handleGoCommand(input, currentArea, parsedCommands) {
             playerData.currentArea = targetArea.areaId;
             output.push(`You go ${direction} to the ${targetArea.name}.`);
           } else {
-            output.push(`You can't go that way.`);
+            output.push(`You cannot go that way.`);
           }
         } else {
           output.push(`There is no exit in that direction.`);
         }
       }
     } else {
-      output.push(`You can't go in that direction.`);
+      output.push(`You cannot go in that direction.`);
     }
   } else {
     output.push('Which direction would you like to go?');
@@ -179,32 +227,53 @@ function handleGoCommand(input, currentArea, parsedCommands) {
 }
 
 // Talk command
-function handleTalkCommand(input, parsedCommands, currentArea) {
+function handleTalkCommand(input, parsedCommands, currentArea, isSecondInput = false) {
   const talkableNPCs = parsedCommands.filter(c => c.command === 'talk');
   let output = [];
 
-  if (talkableNPCs.length > 0) {
-    const npcName = input.split(' ')[1];
-    const npc = currentArea.npcs.find(n => n.name.toLowerCase() === npcName.toLowerCase());
-
-    if (npc) {
-      // Check if NPC has a condition to talk
-      if (!npc.condition || checkCondition(npc.condition)) {
-        output.push(`${npc.name} says: ${npc.dialogue.join(' ')}`);
-      } else {
-        output.push(`${npc.name} doesn't want to talk right now.`);
-      }
-    } else {
-      output.push(`You don't see a ${npcName} here.`);
-    }
-  } else {
+  if (!talkableNPCs.length) {
     output.push('There is no one to talk to here.');
+    return { needsFurtherInput: false, output };
   }
 
-  return {
-    needsFurtherInput: false, // No further input needed for the 'talk' command
-    output: output
-  };
+  if (isSecondInput) {
+    const npcName = input.trim().toLowerCase();
+    const npcMatch = talkableNPCs.find(c => c.npc.toLowerCase() === npcName);
+    if (npcMatch) {
+      if (!npcMatch.condition || checkCondition(npcMatch.condition, currentArea)) {
+        output.push(npcMatch.response);
+      } else {
+        output.push(`${npcMatch.npc} doesn’t want to talk right now.`);
+      }
+    } else {
+      output.push(`You don’t see "${input}" here to talk to.`);
+    }
+    return { needsFurtherInput: false, output };
+  }
+
+  const npcName = input.toLowerCase().replace('talk', '').trim();
+  if (!npcName) {
+    output.push('Who would you like to talk to?');
+    talkableNPCs.forEach(npc => {
+      if (!npc.condition || checkCondition(npc.condition, currentArea)) {
+        output.push(`- ${npc.npc}`);
+      }
+    });
+    return { needsFurtherInput: true, output };
+  }
+
+  const npcMatch = talkableNPCs.find(c => c.npc.toLowerCase() === npcName);
+  if (npcMatch) {
+    if (!npcMatch.condition || checkCondition(npcMatch.condition, currentArea)) {
+      output.push(npcMatch.response);
+    } else {
+      output.push(`${npcMatch.npc} doesn’t want to talk right now.`);
+    }
+  } else {
+    output.push(`You don’t see "${npcName}" here to talk to.`);
+  }
+
+  return { needsFurtherInput: false, output };
 }
 
 // Take command
@@ -217,22 +286,12 @@ function handleTakeCommand(input, parsedCommands, currentArea) {
     const item = currentArea.items.find(i => i.name.toLowerCase() === itemName);
     if (item) {
       if (!item.condition || checkCondition(item.condition, currentArea)) {
-        const existingItem = playerData.inventory.find(i => i.name.toLowerCase() === itemName);
-        const invItemTemplate = gameData.inventoryItems.find(i => i.name.toLowerCase() === itemName);
-        if (existingItem) {
-          existingItem.quantity += item.quantity || 1;
-        } else {
-          playerData.inventory.push({
-            name: item.name,
-            quantity: item.quantity || 1,
-            conditions: invItemTemplate?.conditions || item.conditions || {}
-          });
-        }
+        addItemToInventory(item.name); // Use the standardized function
         const itemIndex = currentArea.items.indexOf(item);
         currentArea.items.splice(itemIndex, 1);
         output.push(`You take the ${itemName}.`);
       } else {
-        output.push(`You can't take the ${itemName} right now.`);
+        output.push(`You cannot take the ${itemName} right now.`);
       }
     } else {
       output.push(`There is no ${itemName} here.`);
@@ -243,7 +302,6 @@ function handleTakeCommand(input, parsedCommands, currentArea) {
 
   return { needsFurtherInput: false, output };
 }
-
 
 // Push command
 function handlePushCommand(input, parsedCommands, currentArea) {
@@ -256,11 +314,11 @@ function handlePushCommand(input, parsedCommands, currentArea) {
 
     if (object) {
       // Check if the object has a condition
-      if (!object.condition || checkCondition(object.condition)) {
+      if (!object.condition || checkCondition(object.condition, currentArea)) {
         // If the object is pushable, provide feedback
         output.push(`You push the ${objectName}, but nothing happens.`);
       } else {
-        output.push(`You can't push the ${objectName} right now.`);
+        output.push(`You cannot push the ${objectName} right now.`);
       }
     } else {
       output.push(`There is no ${objectName} here to push.`);
@@ -286,11 +344,11 @@ function handlePullCommand(input, parsedCommands, currentArea) {
 
     if (object) {
       // Check if the object has a condition
-      if (!object.condition || checkCondition(object.condition)) {
+      if (!object.condition || checkCondition(object.condition, currentArea)) {
         // If the object is pullable, provide feedback
         output.push(`You pull the ${objectName}, but nothing happens.`);
       } else {
-        output.push(`You can't pull the ${objectName} right now.`);
+        output.push(`You cannot pull the ${objectName} right now.`);
       }
     } else {
       output.push(`There is no ${objectName} here to pull.`);
@@ -321,6 +379,8 @@ function handleAction(command, currentArea) {
       const area = areaData.find(a => a.areaId === parseInt(areaPath));
       const itemIndex = area.items.findIndex(i => i.itemId === parseInt(itemPath));
       area.items.splice(itemIndex, 1);
+    } else if (trigger.action === 'addItemToInventory') {
+      addItemToInventory(trigger.item); // Replace manual push
     }
   });
 }
@@ -328,69 +388,80 @@ function handleAction(command, currentArea) {
 // Main function for commands
 function handleCommand(input, isSecondInput) {
   const currentArea = areaData.find(area => area.areaId === playerData.currentArea);
-  if (!currentArea) return ['Invalid area.'];
+  if (!currentArea) return { needsFurtherInput: false, output: ['Invalid area.'] };
 
   let output = [];
 
   // Parse the current area's commands
   const parsedCommands = parseCommands(currentArea);
 
-  // Handle 'look' command
+  if (isSecondInput) {
+    // Handle continued input (e.g., after "look")
+    const lookableItems = parsedCommands.filter(c => c.command === 'look');
+    if (input && lookableItems.length > 0) {
+      const target = input.toLowerCase();
+      const itemMatch = lookableItems.find(c => c.item?.toLowerCase() === target);
+      const secretMatch = lookableItems.find(c => c.secret?.toLowerCase() === target);
+
+      if (itemMatch) {
+        if (!itemMatch.condition || checkCondition(itemMatch.condition)) {
+          output.push(`You examine the ${itemMatch.item}. It looks ${itemMatch.response || 'ordinary.'}`);
+        } else {
+          output.push(`The ${itemMatch.item} is obscured and hard to see.`);
+        }
+      } else if (secretMatch) {
+        if (!secretMatch.condition || checkCondition(secretMatch.condition, currentArea)) {
+          output.push(secretMatch.response || `You uncover the ${secretMatch.secret}.`);
+        } else {
+          output.push(`The secret remains hidden.`);
+        }
+      } else {
+        output.push(`You don’t see a "${target}" to look at.`);
+      }
+    } else {
+      output.push('Nothing to examine.');
+    }
+    return { needsFurtherInput: false, output };
+  }
+
   if (input.toLowerCase() === 'look') {
     const lookResult = handleLookCommand(input, parsedCommands);
-    output = lookResult.output;
-    if (lookResult.needsFurtherInput) {
-      return {
-        needsFurtherInput: true,
-        output: output
-      };
-    }
+    return lookResult; // Already returns { needsFurtherInput: true, output }
   }
 
-  // Handle 'go' command
   if (input.toLowerCase() === 'go') {
     const goResult = handleGoCommand(input, parsedCommands, currentArea);
-    output = goResult.output;
-    if (goResult.needsFurtherInput) {
-      return {
-        needsFurtherInput: true,
-        output: output
-      };
-    }
+    return goResult;
   }
 
-  // Handle 'talk' command
   else if (input.toLowerCase().startsWith('talk ')) {
     const talkResult = handleTalkCommand(input, parsedCommands, currentArea);
-    output = talkResult.output;
+    return talkResult;
   }
 
-  // Handle 'take' command
   else if (input.toLowerCase().startsWith('take ')) {
     const takeResult = handleTakeCommand(input, parsedCommands, currentArea);
-    output = takeResult.output;
+    return takeResult;
   }
 
-  // Handle 'push' command
   else if (input.toLowerCase().startsWith('push ')) {
     const pushResult = handlePushCommand(input, parsedCommands, currentArea);
-    output = pushResult.output;
+    return pushResult;
   }
 
-  // Handle 'pull' command
   else if (input.toLowerCase().startsWith('pull ')) {
     const pullResult = handlePullCommand(input, parsedCommands, currentArea);
-    output = pullResult.output;
+    return pullResult;
   }
 
-  // Handle inventory look
   if (input.toLowerCase().startsWith('inventory ')) {
-    const target = input.toLowerCase().slice(5); // Remove "inventory "
+    const target = input.toLowerCase().slice(10).trim(); // Corrected to slice(10) for "inventory "
     const invCommand = parsedCommands.find(c => c.command === `inventory ${target}` && c.type === 'inventory');
     if (invCommand) {
-      const invItem = gameData.inventoryItems.find(i => i.name.toLowerCase() === target);
+      const invItem = inventoryDescriptions.find(i => i.name.toLowerCase() === target);
       if (invItem && invItem.lookBlurbs?.length) {
         const randomBlurb = invItem.lookBlurbs[Math.floor(Math.random() * invItem.lookBlurbs.length)];
+        output.push(invItem.description);
         output.push(randomBlurb);
       } else {
         output.push(invItem?.description || `You see nothing special about the ${target}.`);
@@ -399,23 +470,21 @@ function handleCommand(input, isSecondInput) {
     }
   }
 
-  // Check for other commands
   else {
     const command = parsedCommands.find(c => c.command.toLowerCase() === input.toLowerCase());
     if (command) {
-      if (!command.condition || checkCondition(command.condition)) {
+      if (!command.condition || checkCondition(command.condition, currentArea)) {
         output.push(command.response);
         handleAction(command, currentArea);
       } else {
         output.push('You cannot do that right now.');
       }
+    } else if (input.trim()) {
+      output.push(`Unknown command: ${input}`);
     }
   }
 
-  return {
-    needsFurtherInput: false, // No more input needed unless indicated
-    output: output
-  };
+  return { needsFurtherInput: false, output };
 }
 
 // Display inventory
@@ -424,7 +493,7 @@ function displayInventory() {
 
   const output = ['\nYour inventory:'];
   playerData.inventory.forEach(item => {
-    const invItem = gameData.inventoryItems.find(i => i.name === item.name);
+    const invItem = inventoryDescriptions.find(i => i.name === item.name);
     if (invItem) {
       output.push(`- ${invItem.description}`);
     }
