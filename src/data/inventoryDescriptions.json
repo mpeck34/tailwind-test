@@ -1,55 +1,61 @@
 {
     "invDescriptions": [
-    {
+      {
         "name": "Sticky Sap",
         "description": "A gooey blob of sap clings to your fingers.",
         "lookBlurbs": [
-        "It's stickier than a tax collector's handshake.",
-        "You're not sure if it's alive or just really clingy.",
-        "Smells like a tree had a bad day.",
-        "You try to shake it off, but it's stubborn as a mule."
+          "It's stickier than a tax collector's handshake.",
+          "You're not sure if it's alive or just really clingy.",
+          "Smells like a tree had a bad day.",
+          "You try to shake it off, but it's stubborn as a mule."
         ],
         "extraLookBlurbs": {
-        "isSticky": [
+          "isSticky": [
             "It feels like you’ll never get it off your hands.",
             "The sap is nearly impossible to separate from anything it touches."
-        ],
-        "isSmelly": [
+          ],
+          "isSmelly": [
             "The smell is overpowering, like rotten wood."
-        ]
+          ]
         }
-    },
-    {
+      },
+      {
         "name": "Torch",
         "description": "A wooden torch, warm in your grip.",
         "lookBlurbs": [
-        "It flickers like it's plotting something.",
-        "Smells faintly of burnt dreams.",
-        "You wonder how long it'll last before you're in the dark again.",
-        "It's a stick that's really into fire."
+          "It flickers like it's plotting something.",
+          "Smells faintly of burnt dreams.",
+          "You wonder how long it'll last before you're in the dark again.",
+          "It's a stick that's really into fire."
         ],
         "extraLookBlurbs": {
-        "isLit": [
+          "isLit": [
             "The flame dances brightly, casting shadows across your path.",
             "The warmth of the fire makes you feel safer in the dark."
-        ]
+          ]
         }
-    },
-    {
+      },
+      {
         "name": "Golden Coin",
         "description": "A shiny coin rests in your palm.",
         "lookBlurbs": [
-        "It glints like it's mocking your empty pockets.",
-        "Feels heavier than your conscience.",
-        "You flip it and call heads—nobody cares.",
-        "Looks like it's seen more adventures than you."
+          "It glints like it's mocking your empty pockets.",
+          "Feels heavier than your conscience.",
+          "You flip it and call heads—nobody cares.",
+          "Looks like it's seen more adventures than you."
         ],
         "extraLookBlurbs": {
-        "isCursed": [
+          "isCursed": [
             "The coin feels unnaturally cold in your presence.",
             "A dark energy seems to seep from it."
-        ]
+          ]
         }
-    }
+      },
+      {
+        "name": "Magic Lens",
+        "description": "A mystical lens that reveals hidden truths.",
+        "lookBlurbs": []
+      }
     ]
-}
+  }
+  

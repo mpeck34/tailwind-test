@@ -1,5 +1,6 @@
 import gameData from './data/gameData.json'; // Ensure correct path
 import inventoryDescriptions from './data/inventoryDescriptions.json';
+import { parseCommand } from './commandParser.js';
 
 const invDescriptions = inventoryDescriptions.invDescriptions;
 const playerData = gameData.playerData;
@@ -124,15 +125,16 @@ function checkCondition(condition, currentArea, itemName = undefined) {
 }
 
 function addItemToInventory(itemName) {
-  const itemDescription = invDescriptions.find(item => item.name === itemName);
+  const itemDescription = invDescriptions.find(item => item.name.toLowerCase() === itemName.toLowerCase());
   if (itemDescription) {
-    const newItem = {
-      name: itemDescription.name,
-      conditions: { ...itemDescription.defaultConditions } // Copy default conditions
-    };
-    playerData.inventory.push(newItem);
+      const newItem = {
+          name: itemDescription.name,
+          conditions: { ...itemDescription.defaultConditions }
+      };
+      playerData.inventory.push(newItem);
+      console.log(`Added ${itemName} to inventory. Current inventory:`, playerData.inventory);
   } else {
-    console.error(`Item "${itemName}" not found in invDescriptions.`);
+      console.error(`Item "${itemName}" not found in invDescriptions. Inventory unchanged.`);
   }
 }
 
@@ -189,7 +191,7 @@ function parseCommands(currentArea) {
 
   // Items
   currentArea.items.forEach(item => item.commands.forEach(cmd => parsedCommands.push({
-    command:`${cmd.command} ${item.name.toLowerCase()}`,
+    command: cmd.command + ' ' + item.name.toLowerCase(),
     target: item.name,
     type: 'item',
     response: cmd.response,
@@ -199,7 +201,7 @@ function parseCommands(currentArea) {
 
   // NPCs
   currentArea.npcs.forEach(npc => npc.commands.forEach(cmd => parsedCommands.push({
-    command:`${cmd.command} ${npc.name.toLowerCase()}`,
+    command: cmd.command + ' ' + npc.name.toLowerCase(),
     npc: npc.name,
     response: cmd.response,
     condition: cmd.condition,
@@ -491,14 +493,20 @@ function displayInventory() {
 // Handle "inventory <item>"
 function handleInventoryItem(input) {
   const output = [];
-  const target = input.toLowerCase().slice(10).trim();
-  const invItem = playerData.inventory.find(item => item.name.toLowerCase() === target);
+  const target = input.toLowerCase().slice(10).trim(); // Assuming "inventory " is 10 chars
+  const invItems = playerData.inventory.filter(item => 
+      item.name.toLowerCase().includes(target)
+  );
 
-  if (invItem) {
-    const invDescription = invDescriptions.find(i => i.name.toLowerCase() === invItem.name.toLowerCase());
-
-    if (invDescription) {
-      output.push(invDescription.description);
+  if (invItems.length === 0) {
+      output.push(`You don't have anything matching "${target}" in your inventory.`);
+  } else if (invItems.length === 1) {
+      const invItem = invItems[0];
+      const invDescription = invDescriptions.find(i => 
+          i.name.toLowerCase() === invItem.name.toLowerCase()
+      );
+      if (invDescription) {
+          output.push(invDescription.description);
 
       // Add extra blurbs if there are conditions set
       if (invDescription.lookBlurbs && invDescription.lookBlurbs.length) {
@@ -537,6 +545,7 @@ function handleAction(command, currentArea) {
         const area = areaData.find(a => a.areaId === parseInt(areaId));
         const npc = area.npcs.find(n => n.npcId === npcId);
         npc.conditions[trigger.condition] = trigger.value;
+        console.log(`Set ${trigger.condition} = ${trigger.value} for NPC ${npc.name}`);
       } else if (subPath.includes('.items.itemId:')) {
         const [areaId, itemPart] = subPath.split('.items.itemId:');
         const itemId = parseInt(itemPart);
@@ -550,21 +559,29 @@ function handleAction(command, currentArea) {
         const area = areaData.find(a => a.areaId === parseInt(areaId));
         const secret = area.secrets.find(s => s.secretId === secretId);
         secret.conditions[trigger.condition] = trigger.value;
+        console.log(`Set ${trigger.condition} = ${trigger.value} for secret ${secret.name}`);
       } else {
         const area = areaData.find(a => a.areaId === parseInt(subPath));
         area.conditions[trigger.condition] = trigger.value;
+        console.log(`Set ${trigger.condition} = ${trigger.value} for area ${area.name}`);
       }
     } else if (trigger.action === 'removeItem') {
       const [areaPath, itemPath] = trigger.target.split('.areaId:')[1].split('.items.itemId:');
       const area = areaData.find(a => a.areaId === parseInt(areaPath));
       const itemIndex = area.items.findIndex(i => i.itemId === parseInt(itemPath));
       area.items.splice(itemIndex, 1);
+      console.log(`Removed item with ID ${itemPath} from area ${area.name}`);
     } else if (trigger.action === 'addItemToInventory') {
       addItemToInventory(trigger.item);
+      // Only set pickedUp if the item was in the area
       const item = currentArea.items.find(i => i.name === trigger.item);
-        if (item) item.conditions.pickedUp = true; // Sync JSON
+      if (item) {
+        item.conditions.pickedUp = true;
+        console.log(`Marked ${trigger.item} as picked up in area`);
+      }
     } else if (trigger.action === 'setPlayerArea') {
       playerData.currentArea = trigger.areaId;
+      console.log(`Moved player to area ${trigger.areaId}`);
     }
   });
 }
@@ -574,72 +591,58 @@ function handleCommand(input, isSecondInput) {
   const currentArea = areaData.find(area => area.areaId === playerData.currentArea);
   if (!currentArea) return { needsFurtherInput: false, output: ['Invalid area.'] };
 
-  let output = [];
-
-  // Parse the current area's commands
   const parsedCommands = parseCommands(currentArea);
+  const { command, target, bestMatch } = parseCommand(input, parsedCommands, currentArea, checkCondition);
 
-  // Handle "look" and "look <target>"
-  if (input.toLowerCase().startsWith('look')) {
-    const lookResult = handleLookCommand(input, parsedCommands, currentArea);
-    return lookResult;
+  if (!command) {
+    return { needsFurtherInput: false, output: [`Unknown command: ${input}`] };
   }
 
-  // Handle "go"
-  if (input.toLowerCase().startsWith('go')) {
-    const goResult = handleGoCommand(input, parsedCommands, currentArea);
-    return goResult;
+  // Handle commands using the canonical command
+  if (command === 'look') {
+    const lookInput = target ? `${command} ${target}` : command;
+    return handleLookCommand(lookInput, parsedCommands, currentArea);
   }
 
-  // Handle "talk" and "talk <target>"
-  if (input.toLowerCase().startsWith('talk')) {
-    const talkResult = handleTalkCommand(input, parsedCommands, currentArea);
-    return talkResult;
+  if (command === 'go') {
+    const goInput = target ? `${command} ${target}` : command;
+    return handleGoCommand(goInput, currentArea, parsedCommands);
   }
 
-  // Handle "take <target>"
-  if (input.toLowerCase().startsWith('take')) {
-    const takeResult = handleTakeCommand(input, parsedCommands, currentArea);
-    return takeResult;
+  if (command === 'talk') {
+    const talkInput = target ? `${command} ${target}` : command;
+    return handleTalkCommand(talkInput, parsedCommands, currentArea, isSecondInput);
   }
 
-  // Handle "push <target>"
-  if (input.toLowerCase().startsWith('push')) {
-    const pushResult = handlePushCommand(input, parsedCommands, currentArea);
-    return pushResult;
+  if (command === 'take') {
+    const takeInput = target ? `${command} ${target}` : command;
+    return handleTakeCommand(takeInput, parsedCommands, currentArea);
   }
 
-  // Handle "pull <target>"
-  if (input.toLowerCase().startsWith('pull')) {
-    const pullResult = handlePullCommand(input, parsedCommands, currentArea);
-    return pullResult;
+  if (command === 'push') {
+    const pushInput = target ? `${command} ${target}` : command;
+    return handlePushCommand(pushInput, parsedCommands, currentArea);
   }
 
-  // Handle "inventory"
-  if (input.toLowerCase() === 'inventory') {
-    const inventoryResult = displayInventory();
-    return { needsFurtherInput: false, output: inventoryResult };
+  if (command === 'pull') {
+    const pullInput = target ? `${command} ${target}` : command;
+    return handlePullCommand(pullInput, parsedCommands, currentArea);
   }
 
-  // Handle "inventory <item>"
-  if (input.toLowerCase().startsWith('inventory ')) {
-    return handleInventoryItem(input);
-  }
-
-  // Generic command handling
-  const command = parsedCommands.find(c => c.command.toLowerCase() === input.toLowerCase());
-  if (command) {
-    if (!command.condition || checkCondition(command.condition, currentArea, command.target)) {
-      output.push(command.response);
-      handleAction(command, currentArea);
-    } else {
-      output.push('You cannot do that right now.');
+  if (command === 'inventory') {
+    if (!target) {
+      return { needsFurtherInput: false, output: displayInventory() };
     }
-  } else if (input.trim()) {
-    output.push(`Unknown command: ${input}`);
+    return handleInventoryItem(`${command} ${target}`);
   }
 
-  return { needsFurtherInput: false, output };
+  // Generic command handling with bestMatch (conditions already checked by parseCommand)
+  if (bestMatch) {
+    handleAction(bestMatch, currentArea);
+    return { needsFurtherInput: false, output: [bestMatch.response] };
+  }
+
+  return { needsFurtherInput: false, output: [`Cannot understand "${input}".`] };
 }
 
-export { handleCommand, displayArea };
+export { handleCommand, displayArea, checkCondition };
