@@ -13,11 +13,26 @@
     "inventory": [
       {
         "name": "Sticky Sap",
-        "conditions": { "isSticky": true, "isSmelly": true }
+        "conditions": {
+          "isSticky": true,
+          "isSmelly": true,
+          "slowsMovement": true
+        }
       },
       {
         "name": "Torch",
-        "conditions": { "isLit": false, "isSticky": false }
+        "conditions": {
+          "isLit": false,
+          "isSticky": false
+        }
+      },
+      {
+        "name": "Golden Coin",
+        "conditions": {
+          "isSticky": false,
+          "isCursed": false,
+          "canBeUsedInTrade": true
+        }
       }
     ],
     "conditions": {
@@ -57,134 +72,174 @@
           { "condition": { "type": "areaCondition", "key": "isHidden", "value": true }, "text": "The square is obscured by a thick mist." }
         ]
       },
-      "npcs": [
-        {
-          "npcId": 1,
-          "name": "Old Man",
-          "description": "An old man with a long white beard, he knows many stories.",
-          "conditions": {
-            "hasMetPlayer": false,
-            "knowsSecret": true,
-            "isAsleep": false,
-            "isHostile": false,
-            "hasMagicLens": true
-          },
-          "interactions": [
-            { "condition": null, "text": "Welcome to the village." },
-            { "condition": { "type": "npcCondition", "key": "hasMetPlayer", "value": true }, "text": "Good to see you again." },
-            { "condition": { "type": "areaCondition", "key": "spokenToOldMan", "value": true }, "text": "I have more to tell you." },
-            { "condition": { "type": "areaCondition", "key": "villagersAngry", "value": true }, "text": "You've upset the village, haven't you?" }
-          ],
-          "commands": [
-            {
-              "command": "talk",
-              "description": "Talk to the Old Man.",
-              "response": "The Old Man tells you stories about the village.",
-              "condition": [
-                { "type": "npcCondition", "key": "isHostile", "value": false },
-                { "type": "npcCondition", "key": "isAsleep", "value": false },
-                { "type": "npcCondition", "key": "spokenToOldMan", "value": false }
-              ],
-              "actionTrigger": [
-                { "action": "setCondition", "target": "areas.areaId:1", "condition": "spokenToOldMan", "value": true },
-                { "action": "setCondition", "target": "areas.areaId:1", "condition": "hasMetPlayer", "value": true },
-                { "action": "setCondition", "target": "areas.areaId:1.npcs.npcId:1", "condition": "hasMetPlayer", "value": true }
-              ]
+        "npcs": [
+          {
+            "npcId": 1,
+            "name": "Old Man",
+            "description": "An old man with a long white beard, he knows many stories.",
+            "conditions": {
+              "hasMetPlayer": false,
+              "knowsSecret": true,
+              "isAsleep": false,
+              "isHostile": false,
+              "hasMagicLens": true
             },
-            {
-              "command": "talk",
-              "description": "Talk to the Old Man again.",
-              "response": "The Old Man gives you a Magic Lens, saying it will help you see hidden things.",
-              "condition": [
-                { "type": "areaCondition", "key": "spokenToOldMan", "value": true },
-                { "type": "npcCondition", "key": "hasMagicLens", "value": true },
-                { "type": "doesNotHaveItem", "item": "Magic Lens" }
-              ],
-              "actionTrigger": [
-                { "action": "addItemToInventory", "item": "Magic Lens" },
-                { "action": "setCondition", "target": "areas.areaId:1.npcs.npcId:1", "condition": "hasMagicLens", "value": false }
-              ]
+            "interactions": [
+              {
+                "condition": {
+                  "type": "npcCondition",
+                  "npc": "Old Man",
+                  "key": "hasMetPlayer",
+                  "value": false
+                },
+                "text": "Welcome to the village."
+              },
+              {
+                "condition": {
+                  "type": "npcCondition",
+                  "npc": "Old Man",
+                  "key": "hasMetPlayer",
+                  "value": true
+                },
+                "text": "Good to see you again."
+              }
+            ],
+            "commands": [
+              {
+                "command": "talk",
+                "description": "Talk to the Old Man",
+                "response": "The Old Man tells you stories about the village.",
+                "condition": [
+                  {
+                    "type": "areaCondition",
+                    "key": "spokenToOldMan",
+                    "value": false
+                  }
+                ],
+                "actionTrigger": [
+                  {
+                    "action": "setCondition",
+                    "target": "areas.areaId:1",
+                    "condition": "spokenToOldMan",
+                    "value": true
+                  },
+                  {
+                    "action": "setCondition",
+                    "target": "areas.areaId:1.npcs.npcId:1",
+                    "condition": "hasMetPlayer",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "command": "talk",
+                "description": "Talk to the Old Man",
+                "response": "The Old Man gives you a Magic Lens, saying, 'This will help you see hidden truths.'",
+                "condition": [
+                  {
+                    "type": "areaCondition",
+                    "key": "spokenToOldMan",
+                    "value": true
+                  },
+                  {
+                    "type": "npcCondition",
+                    "npc": "Old Man",
+                    "key": "hasMagicLens",
+                    "value": true
+                  }
+                ],
+                "actionTrigger": [
+                  {
+                    "action": "addItemToInventory",
+                    "item": "Magic Lens"
+                  },
+                  {
+                    "action": "setCondition",
+                    "target": "areas.areaId:1.npcs.npcId:1",
+                    "condition": "hasMagicLens",
+                    "value": false
+                  }
+                ]
+              },
+              {
+                "command": "talk",
+                "description": "Talk to the Old Man",
+                "response": "He warns you to stay away from the dark forest.",
+                "condition": [
+                  {
+                    "type": "areaCondition",
+                    "key": "spokenToOldMan",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "command": "look",
+                "description": "Look at the Old Man.",
+                "response": "He looks old."
+              }
+            ]
+          }
+        ],
+        "items": [
+          {
+            "itemId": 1,
+            "name": "Golden Coin",
+            "description": "A shiny gold coin, looks valuable.",
+            "conditions": {
+              "isHidden": false,
+              "isSticky": false,
+              "isCursed": false,
+              "pickedUp": false,
+              "lookedAt": false
             },
-            {
-              "command": "talk",
-              "description": "Ask the Old Man about the forest.",
-              "response": "He warns you to stay away from the dark forest.",
-              "condition": [
-                { "type": "areaCondition", "key": "spokenToOldMan", "value": true },
-                { "type": "npcCondition", "key": "isHostile", "value": false }
-              ],
-              "actionTrigger": [
-
-                { "action": "setCondition", "target": "areas.areaId:1", "condition": "askedAboutForest", "value": true }
-              ]
-            },
-            {
-              "command": "look",
-              "description": "Look at the Old Man.",
-              "response": "He looks old."
-            }
-          ]
-        }
-      ],
-      "items": [
-        {
-          "itemId": 1,
-          "name": "Golden Coin",
-          "description": "A shiny gold coin, looks valuable.",
-          "conditions": {
-            "isHidden": false,
-            "isSticky": false,
-            "isCursed": false,
-            "pickedUp": false,
-            "lookedAt": false
-          },
-          "interactions": [
-            {
-              "condition": [
-                { "type": "itemCondition", "key": "lookedAt", "value": true },
-                { "type": "itemCondition", "key": "pickedUp", "value": false }
-              ],
-              "text": "The coin continues to lie on the ground, glinting at you menacingly... Well, not that menacingly."
-            },
-            {
-              "condition": { "type": "itemCondition", "key": "isCursed", "value": true },
-              "text": "The coin feels unnaturally cold in your presence."
-            }
-          ],
-          "commands": [
-            {
-              "command": "take",
-              "description": "Pick up the Golden Coin.",
-              "response": "You pick up the coin and add it to your inventory.",
-              "condition": { "type": "itemCondition", "key": "pickedUp", "value": false },
-              "actionTrigger": [
-                { "action": "setCondition", "target": "areas.areaId:1.items.itemId:1", "condition": "pickedUp", "value": true },
-                { "action": "removeItem", "target": "areas.areaId:1.items.itemId:1" },
-                { "action": "setCondition", "target": "areas.areaId:1", "condition": "villagersAngry", "value": true }
-              ]
-            },
-            {
-              "command": "look",
-              "description": "Look at the Golden Coin.",
-              "response": "The coin glints in the sunlight, its value unknown.",
-              "condition": { "type": "itemCondition", "key": "pickedUp", "value": false },
-              "actionTrigger": [
-                { "action": "setCondition", "target": "areas.areaId:1.items.itemId:1", "condition": "lookedAt", "value": true }
-              ]
-            },
-            {
-              "command": "look",
-              "description": "Look closer at the Golden Coin.",
-              "response": "As you look closer at the coin, you can see something engraved upon it.",
-              "condition": [
-                { "type": "itemCondition", "key": "lookedAt", "value": true },
-                { "type": "itemCondition", "key": "pickedUp", "value": false }
-              ]
-            }
-          ]
-        }
-      ],
-      "secrets": [
+            "interactions": [
+              {
+                "condition": [
+                  { "type": "itemCondition", "key": "lookedAt", "value": true },
+                  { "type": "itemCondition", "key": "pickedUp", "value": false }
+                ],
+                "text": "The coin continues to lie on the ground, glinting at you menacingly... Well, not that menacingly."
+              },
+              {
+                "condition": { "type": "itemCondition", "key": "isCursed", "value": true },
+                "text": "The coin feels unnaturally cold in your presence."
+              }
+            ],
+            "commands": [
+              {
+                "command": "take",
+                "description": "Pick up the Golden Coin.",
+                "response": "You pick up the coin and add it to your inventory.",
+                "condition": { "type": "itemCondition", "key": "pickedUp", "value": false },
+                "actionTrigger": [
+                  { "action": "setCondition", "target": "areas.areaId:1.items.itemId:1", "condition": "pickedUp", "value": true },
+                  { "action": "removeItem", "target": "areas.areaId:1.items.itemId:1" },
+                  { "action": "setCondition", "target": "areas.areaId:1", "condition": "villagersAngry", "value": true }
+                ]
+              },
+              {
+                "command": "look",
+                "description": "Look at the Golden Coin.",
+                "response": "The coin glints in the sunlight, its value unknown.",
+                "condition": { "type": "itemCondition", "key": "pickedUp", "value": false },
+                "actionTrigger": [
+                  { "action": "setCondition", "target": "areas.areaId:1.items.itemId:1", "condition": "lookedAt", "value": true }
+                ]
+              },
+              {
+                "command": "look",
+                "description": "Look closer at the Golden Coin.",
+                "response": "As you look closer at the coin, you can see something engraved upon it.",
+                "condition": [
+                  { "type": "itemCondition", "key": "lookedAt", "value": true },
+                  { "type": "itemCondition", "key": "pickedUp", "value": false }
+                ]
+              }
+            ]
+          }
+        ],
+        "secrets": [
         {
           "secretId": 1,
           "name": "Hidden Passage",
@@ -304,12 +359,16 @@
       "realm": "Earth",
       "conditions": {
         "hasBeenVisited": false,
-        "placedStaffInStump": false
+        "placedStaffInStump": false,
+        "isDark": true,
+        "isOvergrown": true
       },
       "environment": {
         "additives": [
           { "condition": { "type": "areaCondition", "key": "hasBeenVisited", "value": false }, "text": "The forest feels unfamiliar and foreboding." },
-          { "condition": { "type": "areaCondition", "key": "placedStaffInStump", "value": true }, "text": "A faint glow emanates from the tree stump." }
+          { "condition": { "type": "areaCondition", "key": "placedStaffInStump", "value": true }, "text": "A faint glow emanates from the tree stump." },
+          { "condition": { "type": "areaCondition", "key": "isDark", "value": true }, "text": "Shadows cling to every branch, making it hard to see." },
+          { "condition": { "type": "areaCondition", "key": "isOvergrown", "value": true }, "text": "Vines and roots tangle underfoot, slowing your steps." }
         ]
       },
       "npcs": [
@@ -318,28 +377,42 @@
           "name": "Forest Spirit",
           "description": "A mystical spirit that guides lost travelers.",
           "conditions": {
-            "isInvisible": false
+            "isInvisible": false,
+            "hasMetPlayer": false,
+            "hasGivenMushroom": false
           },
           "interactions": [
             { "condition": null, "text": "The forest is dangerous. Stay on the path." },
-            { "condition": { "type": "areaCondition", "key": "placedStaffInStump", "value": true }, "text": "Follow the light if you wish to find your way out." }
+            { "condition": { "type": "areaCondition", "key": "placedStaffInStump", "value": true }, "text": "Follow the light if you wish to find your way out." },
+            { "condition": { "type": "npcCondition", "key": "hasMetPlayer", "value": true }, "text": "You again? The forest still watches." }
           ],
           "commands": [
             {
               "command": "talk",
               "description": "Talk to the Forest Spirit.",
               "response": "The spirit warns you of the dangers of straying from the path.",
-              "condition": null
+              "condition": null,
+              "actionTrigger": [
+                { "action": "setCondition", "target": "areas.areaId:2.npcs.npcId:2", "condition": "hasMetPlayer", "value": true }
+              ]
             },
             {
               "command": "ask about light",
               "description": "Ask the Forest Spirit about the light.",
-              "response": "The spirit tells you to follow the glow of the mushrooms.",
-              "condition": null
+              "response": "The spirit gives you a Glowing Mushroom to light your way.",
+              "condition": [
+                { "type": "npcCondition", "key": "hasMetPlayer", "value": true },
+                { "type": "npcCondition", "key": "hasGivenMushroom", "value": false }
+              ],
+              "actionTrigger": [
+                { "action": "addItemToInventory", "item": "Glowing Mushroom" },
+                { "action": "setCondition", "target": "areas.areaId:2.npcs.npcId:2", "condition": "hasGivenMushroom", "value": true }
+              ]
             }
           ]
         }
       ],
+      "items": [],
       "secrets": [
         {
           "secretId": 2,
@@ -379,9 +452,39 @@
         "teleport": 3,
         "commands": [
           {
+            "command": "go north",
+            "description": "Move to the north exit.",
+            "response": "The trees block your way north.",
+            "condition": null
+          },
+          {
             "command": "go south",
             "description": "Return to the Village Square.",
             "response": "You head back through the forest to the village.",
+            "condition": null
+          },
+          {
+            "command": "go east",
+            "description": "Move to the east exit.",
+            "response": "Thick undergrowth prevents eastward travel.",
+            "condition": null
+          },
+          {
+            "command": "go west",
+            "description": "Move to the west exit.",
+            "response": "The forest is too dense to head west.",
+            "condition": null
+          },
+          {
+            "command": "go up",
+            "description": "Climb up to a higher level.",
+            "response": "The trees are too slippery to climb.",
+            "condition": null
+          },
+          {
+            "command": "go down",
+            "description": "Descend to a lower level.",
+            "response": "There’s no way down from here.",
             "condition": null
           },
           {
@@ -396,56 +499,12 @@
         ]
       }
     }
-  ],
-  "inventoryDescriptions": [
-    {
-      "name": "Sticky Sap",
-      "description": "A gooey blob of sap clings to your fingers.",
-      "lookBlurbs": [
-        "It's stickier than a tax collector's handshake.",
-        "You're not sure if it's alive or just really clingy.",
-        "Smells like a tree had a bad day.",
-        "You try to shake it off, but it's stubborn as a mule."
-      ],
-      "defaultConditions": { "isSticky": true, "isSmelly": true }
-    },
-    {
-      "name": "Torch",
-      "description": "A wooden torch, warm in your grip.",
-      "lookBlurbs": [
-        "It flickers like it's plotting something.",
-        "Smells faintly of burnt dreams.",
-        "You wonder how long it'll last before you're in the dark again.",
-        "It's a stick that's really into fire."
-      ],
-      "defaultConditions": { "isLit": false, "isSticky": false }
-    },
-    {
-      "name": "Golden Coin",
-      "description": "A shiny coin rests in your palm.",
-      "lookBlurbs": [
-        "It glints like it's mocking your empty pockets.",
-        "Feels heavier than your conscience.",
-        "You flip it and call heads—nobody cares.",
-        "Looks like it's seen more adventures than you."
-      ],
-      "defaultConditions": { "isSticky": false, "isCursed": false }
-    },
-    {
-      "name": "Magic Lens",
-      "description": "A small lens that reveals hidden things.",
-      "lookBlurbs": [
-        "It shimmers faintly, as if eager to show you secrets."
-      ],
-      "defaultConditions": {}
-    },
-    {
-      "name": "Wooden Staff",
-      "description": "A sturdy staff carved from an ancient tree.",
-      "lookBlurbs": [
-        "It hums with a quiet energy."
-      ],
-      "defaultConditions": {}
-    }
   ]
 }
+      
+        
+      
+
+
+
+

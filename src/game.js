@@ -1,6 +1,7 @@
 import gameData from './data/gameData.json'; // Ensure correct path
+import inventoryDescriptions from './data/inventoryDescriptions.json';
 
-const inventoryDescriptions = gameData.inventoryDescriptions;
+const invDescriptions = inventoryDescriptions.invDescriptions;
 const playerData = gameData.playerData;
 const areaData = gameData.areas;
 
@@ -123,7 +124,7 @@ function checkCondition(condition, currentArea, itemName = undefined) {
 }
 
 function addItemToInventory(itemName) {
-  const itemDescription = inventoryDescriptions.find(item => item.name === itemName);
+  const itemDescription = invDescriptions.find(item => item.name === itemName);
   if (itemDescription) {
     const newItem = {
       name: itemDescription.name,
@@ -131,18 +132,8 @@ function addItemToInventory(itemName) {
     };
     playerData.inventory.push(newItem);
   } else {
-    console.error(`Item "${itemName}" not found in inventoryDescriptions.`);
+    console.error(`Item "${itemName}" not found in invDescriptions.`);
   }
-}
-
-// Look at item in inventory
-function lookAtItem(itemName) {
-  const itemDescription = inventoryDescriptions.find(item => item.name === itemName);
-  if (itemDescription) {
-    const randomBlurb = itemDescription.lookBlurbs[Math.floor(Math.random() * itemDescription.lookBlurbs.length)];
-    return [itemDescription.description, randomBlurb];
-  }
-  return [`You don't have a "${itemName}" in your inventory.`];
 }
 
 function parseItemsNpcs(currentArea) {
@@ -486,6 +477,54 @@ function handlePullCommand(input, parsedCommands, currentArea) {
   };
 }
 
+// Display inventory
+function displayInventory() {
+  if (!playerData.inventory.length) return ['Your inventory is empty.'];
+
+  const output = ['\nYour inventory:'];
+  playerData.inventory.forEach(item => {
+    output.push(`- ${item.name}`);
+  });
+  return output;
+}
+
+// Handle "inventory <item>"
+function handleInventoryItem(input) {
+  const output = [];
+  const target = input.toLowerCase().slice(10).trim();
+  const invItem = playerData.inventory.find(item => item.name.toLowerCase() === target);
+
+  if (invItem) {
+    const invDescription = invDescriptions.find(i => i.name.toLowerCase() === invItem.name.toLowerCase());
+
+    if (invDescription) {
+      output.push(invDescription.description);
+
+      // Add extra blurbs if there are conditions set
+      if (invDescription.lookBlurbs && invDescription.lookBlurbs.length) {
+        const randomBlurb = invDescription.lookBlurbs[Math.floor(Math.random() * invDescription.lookBlurbs.length)];
+        output.push(randomBlurb);
+      }
+
+      // Add extra condition-based blurbs if conditions are met
+      if (invItem.conditions) {
+        for (const [condition, isTrue] of Object.entries(invItem.conditions)) {
+          if (isTrue && invDescription.extraLookBlurbs?.[condition]) {
+            const randomConditionBlurb = invDescription.extraLookBlurbs[condition][Math.floor(Math.random() * invDescription.extraLookBlurbs[condition].length)];
+            output.push(randomConditionBlurb);
+          }
+        }
+      }
+    } else {
+      output.push(`You don't see anything special about the ${target}.`);
+    }
+  } else {
+    output.push(`You don't have a "${target}" in your inventory.`);
+  }
+
+  return { needsFurtherInput: false, output };
+}
+
 // Handle Action Triggers
 function handleAction(command, currentArea) {
   if (!command.actionTrigger) return;
@@ -576,21 +615,15 @@ function handleCommand(input, isSecondInput) {
     return pullResult;
   }
 
-  // Handle "inventory <target>"
+  // Handle "inventory"
+  if (input.toLowerCase() === 'inventory') {
+    const inventoryResult = displayInventory();
+    return { needsFurtherInput: false, output: inventoryResult };
+  }
+
+  // Handle "inventory <item>"
   if (input.toLowerCase().startsWith('inventory ')) {
-    const target = input.toLowerCase().slice(10).trim();
-    const invCommand = parsedCommands.find(c => c.command === `inventory ${target}` && c.type === 'inventory');
-    if (invCommand) {
-      const invItem = inventoryDescriptions.find(i => i.name.toLowerCase() === target);
-      if (invItem && invItem.lookBlurbs?.length) {
-        const randomBlurb = invItem.lookBlurbs[Math.floor(Math.random() * invItem.lookBlurbs.length)];
-        output.push(invItem.description);
-        output.push(randomBlurb);
-      } else {
-        output.push(invItem?.description || `You see nothing special about the ${target}.`);
-      }
-      return { needsFurtherInput: false, output };
-    }
+    return handleInventoryItem(input);
   }
 
   // Generic command handling
@@ -608,20 +641,5 @@ function handleCommand(input, isSecondInput) {
 
   return { needsFurtherInput: false, output };
 }
-
-// Display inventory
-function displayInventory() {
-  if (!playerData.inventory.length) return ['Your inventory is empty.'];
-
-  const output = ['\nYour inventory:'];
-  playerData.inventory.forEach(item => {
-    const invItem = inventoryDescriptions.find(i => i.name === item.name);
-    if (invItem) {
-      output.push(`- ${invItem.description}`);
-    }
-  });
-  return output;
-}
-
 
 export { handleCommand, displayArea };
