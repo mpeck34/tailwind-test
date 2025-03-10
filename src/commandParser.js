@@ -44,7 +44,7 @@ function parseCommand(input, parsedCommands, currentArea, checkCondition) {
 
     if (!canonicalCommand && inputCommand.length >= MIN_COMMAND_LENGTH) {
         const matches = Object.keys(commandSynonyms).filter(key => 
-            commandSynonyms[key].startsChristopherWith(inputCommand)
+            commandSynonyms[key].startsWith(inputCommand)
         );
         if (matches.length === 1) {
             canonicalCommand = commandSynonyms[matches[0]];

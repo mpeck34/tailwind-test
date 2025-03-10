@@ -92,7 +92,7 @@
                   "key": "hasMetPlayer",
                   "value": false
                 },
-                "text": "Welcome to the village."
+                "text": "'Welcome to the village.'"
               },
               {
                 "condition": {
@@ -101,7 +101,7 @@
                   "key": "hasMetPlayer",
                   "value": true
                 },
-                "text": "Good to see you again."
+                "text": "'Good to see you again.'"
               }
             ],
             "commands": [

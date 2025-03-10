@@ -227,6 +227,35 @@ function parseCommands(currentArea) {
     });
   });
 
+  const npcTalkCommands = {};
+  currentArea.npcs.forEach(npc => {
+      npc.commands.forEach(cmd => {
+          if (cmd.command === 'talk') {
+              if (!npcTalkCommands[npc.name]) {
+                  npcTalkCommands[npc.name] = [];
+              }
+              npcTalkCommands[npc.name].push({
+                  command: `talk ${npc.name.toLowerCase()}`,
+                  npc: npc.name,
+                  type: 'npc',
+                  response: cmd.response,
+                  condition: cmd.condition,
+                  actionTrigger: cmd.actionTrigger
+              });
+          } else {
+              parsedCommands.push({
+                  command: `${cmd.command} ${npc.name.toLowerCase()}`,
+                  npc: npc.name,
+                  type: 'npc',
+                  response: cmd.response,
+                  condition: cmd.condition,
+                  actionTrigger: cmd.actionTrigger
+              });
+          }
+      });
+  });
+  Object.values(npcTalkCommands).forEach(commands => parsedCommands.push(...commands));
+
   // Generic look
   parsedCommands.push({
     command: 'look',
@@ -338,55 +367,33 @@ function handleGoCommand(input, currentArea, parsedCommands) {
 }
 
 // Talk command
-function handleTalkCommand(input, parsedCommands, currentArea, isSecondInput = false) {
-  const talkableNPCs = parsedCommands.filter(c => c.command.startsWith('talk '));
-  console.log('Talkable NPCs:', talkableNPCs.map(npc => npc.npc));
-  let output = [];
+function handleTalkCommand(input, parsedCommands, currentArea, isSecondInput) {
+  const output = [];
+  const validTalkMatches = parsedCommands.filter(c => c.command.startsWith('talk') && c.npc);
+  const uniqueNpcs = [...new Set(validTalkMatches.map(c => c.npc))];
 
-  if (!talkableNPCs.length) {
-    output.push('There is no one to talk to here.');
-    return { needsFurtherInput: false, output };
-  }
-
-  if (isSecondInput) {
-    const npcName = input.trim().toLowerCase();
-    const npcMatch = talkableNPCs.find(c => c.npc.toLowerCase() === npcName);
-    if (npcMatch) {
-      if (!npcMatch.condition || checkCondition(npcMatch.condition, currentArea)) {
-        output.push(npcMatch.response);
+  if (!isSecondInput && input.toLowerCase() === 'talk') {
+      if (uniqueNpcs.length === 0) {
+          output.push('There’s no one here to talk to.');
       } else {
-        output.push(`${npcMatch.npc} doesn't want to talk right now.`);
+          output.push('Who would you like to talk to?');
+          uniqueNpcs.forEach(npc => output.push(`- ${npc}`));
       }
-    } else {
-      output.push(`You don't see "${input}" here to talk to.`);
-    }
-    return { needsFurtherInput: false, output };
+      return { needsFurtherInput: uniqueNpcs.length > 0, output };
   }
 
-  const npcName = input.toLowerCase().replace('talk', '').trim();
-  if (!npcName) {
-    output.push('Who would you like to talk to?');
-    talkableNPCs.forEach(npc => {
-      if (!npc.condition || checkCondition(npc.condition, currentArea)) {
-        output.push(`- ${npc.npc}`);
-      }
-    });
-    return { needsFurtherInput: true, output };
-  }
+  const talkTarget = input.toLowerCase().slice(5).trim();
+  const validMatch = validTalkMatches.find(match => 
+      match.npc.toLowerCase().includes(talkTarget) && 
+      (!match.condition || checkCondition(match.condition, currentArea, match.npc))
+  );
 
-  const npcMatch = talkableNPCs.filter(c => c.npc.toLowerCase() === npcName);
-  if (npcMatch.length > 0) {
-    const validMatch = npcMatch.find(c => !c.condition || checkCondition(c.condition, currentArea));
-    if (validMatch) {
+  if (validMatch) {
       output.push(validMatch.response);
       handleAction(validMatch, currentArea);
-    } else {
-      output.push(`${npcName} doesn't want to talk right now.`);
-    }
   } else {
-    output.push(`You don't see "${npcName}" here to talk to.`);
+      output.push(`You don't see "${talkTarget}" here to talk to.`);
   }
-
   return { needsFurtherInput: false, output };
 }
 
