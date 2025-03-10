@@ -12,10 +12,15 @@ function Terminal({ onQuit }) {
   const [isShaking, setIsShaking] = useState(false);
   const [flickerIndex, setFlickerIndex] = useState(null);
   const [glitchIndex, setGlitchIndex] = useState(null);
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    // Display the starting area when the game loads
-    setHistory(displayArea(1));
+    if (!hasInitialized.current) {
+      console.log('Initializing game...');
+      //Initial display first area
+      setHistory(displayArea(1));
+      hasInitialized.current = true;
+    }
   }, []);
 
   useEffect(() => {
