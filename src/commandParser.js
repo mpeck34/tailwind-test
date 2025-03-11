@@ -2,7 +2,7 @@
 
 // Expanded dictionary with synonyms and partials, covering all JSON commands
 const commandDictionary = {
-    "look": ["loo", "lk", "see", "view", "examine", "peek", "observe", "lok", "lo"],
+    "look": ["loo", "lk", "see", "view", "examine", "peek", "observe", "lok", "lo", "l"],
     "talk": ["tal", "tk", "chat", "speak", "converse", "say", "ta"],
     "inventory": ["inv", "invent", "items", "gear", "stuff", "in"],
     "take": ["get", "grab", "pickup", "snag", "collect", "tak"],
