@@ -35,8 +35,8 @@ function displayArea(areaId) {
 
     for (const name in entityGroups) {
       const entity = entityGroups[name][0]; // First entity per name
-      if (entity.conditions?.isHidden || entity.conditions?.isInvisible) {
-        console.log(`Skipped ${entity.name} (${entity.conditions.isHidden ? 'hidden' : 'invisible'})`);
+      if (entity.state?.isHidden || entity.state?.isInvisible) {
+        console.log(`Skipped ${entity.name} (${entity.state.isHidden ? 'hidden' : 'invisible'})`);
         continue;
       }
 
@@ -58,7 +58,6 @@ function displayArea(areaId) {
 
 // Check if a condition is true or false
 function checkCondition(condition, currentArea, itemName = undefined) {
-  // If no condition is provided, allow by default (fail to true)
   if (!condition) return true;
 
   // If condition is an array, ensure all conditions pass (AND logic)
@@ -67,8 +66,8 @@ function checkCondition(condition, currentArea, itemName = undefined) {
   }
 
   // Handle different condition types
-  if (condition.type === 'areaCondition') {
-    const value = currentArea?.conditions?.[condition.key];
+  if (condition.type === 'areaState') {
+    const value = currentArea?.areaState?.[condition.key];
     // Special case for visibility: default to false (visible) if undefined
     if (condition.key === 'isHidden' || condition.key === 'isInvisible') {
       return (value ?? false) === condition.value;
@@ -84,25 +83,25 @@ function checkCondition(condition, currentArea, itemName = undefined) {
   if (condition.type === 'doesNotHaveItem') {
     return !(playerData?.inventory?.some(i => i.name === condition.item)) ?? false;
   }
-  if (condition.type === 'playerCondition') {
-    const value = playerData?.conditions?.[condition.key] ?? false;
+  if (condition.type === 'playerState') {
+    const value = playerData?.playerState?.[condition.key] ?? false;
     return value === condition.value;
   }
-  if (condition.type === 'npcCondition') {
+  if (condition.type === 'npcState') {
     const npc = currentArea?.npcs?.find(n => n.name === condition.npc);
-    const value = npc?.conditions?.[condition.key] ?? false;
+    const value = npc?.npcState?.[condition.key] ?? false;
     return value === condition.value;
   }
   if (condition.type === 'itemCondition') {
     const item = currentArea?.items?.find(i => i.name === itemName);
-    console.log(`Item ${itemName} conditions:`, item?.conditions);
-    const value = item?.conditions?.[condition.key] ?? false;
-    console.log(`Checking ${condition.key}: ${value} for ${itemName}, Item: ${JSON.stringify(item?.conditions)}`);
+    console.log(`Item ${itemName} itemState:`, item?.itemState);
+    const value = item?.itemState?.[condition.key] ?? false;
+    console.log(`Checking ${condition.key}: ${value} for ${itemName}, Item: ${JSON.stringify(item?.itemState)}`);
     return value === condition.value;
   }
   if (condition.type === 'secretCondition') {
     const secret = currentArea?.secrets?.find(s => s.name === itemName);
-    const value = secret?.conditions?.[condition.key] ?? false;
+    const value = secret?.secretState?.[condition.key] ?? false;
     return value === condition.value;
   }
 
@@ -115,7 +114,7 @@ function addItemToInventory(itemName) {
   if (itemDescription) {
       const newItem = {
           name: itemDescription.name,
-          conditions: { ...itemDescription.defaultConditions }
+          conditions: { ...itemDescription.defaultStates } //assume default! Check beacuse currently no states or conditions in invdesc
       };
       playerData.inventory.push(newItem);
       console.log(`Added ${itemName} to inventory. Current inventory:`, playerData.inventory);
@@ -133,7 +132,7 @@ function parseItemsNpcs(currentArea) {
       type: 'item',
       name: item.name,
       description: item.description,
-      conditions: item.conditions,
+      state: item.itemState,
       interactions: item.interactions
     });
   });
@@ -144,7 +143,7 @@ function parseItemsNpcs(currentArea) {
       type: 'npc',
       name: npc.name,
       description: npc.description,
-      conditions: npc.conditions,
+      state: npc.npcState,
       interactions: npc.interactions
     });
   });
@@ -155,7 +154,7 @@ function parseItemsNpcs(currentArea) {
       type: 'secret',
       name: secret.name,
       description: secret.description,
-      conditions: secret.conditions,
+      state: secret.secretState,
       interactions: secret.interactions || [] // Secrets might not have interactions, default to empty
     });
   });
@@ -390,11 +389,11 @@ function handleTakeCommand(input, parsedCommands, currentArea) {
 // Push command
 function handlePushCommand(input, parsedCommands, currentArea) {
   const output = [];
-  const pushTarget = input.toLowerCase().slice(5).trim();
-  const validMatch = parsedCommands.find(c => 
-    c.command.startsWith('push') && 
-    (!c.condition || checkCondition(c.condition, currentArea, c.target))
-  );
+  const fullCommand = input.toLowerCase().trim();
+  const pushMatches = parsedCommands.filter(c => c.command === fullCommand);
+  const validMatch = pushMatches
+    .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
+    .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
   if (validMatch) {
     output.push(validMatch.response);
     handleAction(validMatch, currentArea);
@@ -483,30 +482,28 @@ function displayInventory() {
 // Handle "inventory <item>"
 function handleInventoryItem(input) {
   const output = [];
-  const target = input.toLowerCase().slice(10).trim(); // Assuming "inventory " is 10 chars
+  const target = input.toLowerCase().slice(10).trim();
   const invItems = playerData.inventory.filter(item => 
-      item.name.toLowerCase().includes(target)
+    item.name.toLowerCase().includes(target)
   );
 
   if (invItems.length === 0) {
-      output.push(`You don't have anything matching "${target}" in your inventory.`);
+    output.push(`You don't have anything matching "${target}" in your inventory.`);
   } else if (invItems.length === 1) {
-      const invItem = invItems[0];
-      const invDescription = invDescriptions.find(i => 
-          i.name.toLowerCase() === invItem.name.toLowerCase()
-      );
-      if (invDescription) {
-          output.push(invDescription.description);
+    const invItem = invItems[0];
+    const invDescription = invDescriptions.find(i => 
+      i.name.toLowerCase() === invItem.name.toLowerCase()
+    );
+    if (invDescription) {
+      output.push(invDescription.description);
 
-      // Add extra blurbs if there are conditions set
       if (invDescription.lookBlurbs && invDescription.lookBlurbs.length) {
         const randomBlurb = invDescription.lookBlurbs[Math.floor(Math.random() * invDescription.lookBlurbs.length)];
         output.push(randomBlurb);
       }
 
-      // Add extra condition-based blurbs if conditions are met
-      if (invItem.conditions) {
-        for (const [condition, isTrue] of Object.entries(invItem.conditions)) {
+      if (invItem.itemState) {
+        for (const [condition, isTrue] of Object.entries(invItem.itemState)) {
           if (isTrue && invDescription.extraLookBlurbs?.[condition]) {
             const randomConditionBlurb = invDescription.extraLookBlurbs[condition][Math.floor(Math.random() * invDescription.extraLookBlurbs[condition].length)];
             output.push(randomConditionBlurb);
@@ -527,32 +524,32 @@ function handleInventoryItem(input) {
 function handleAction(command, currentArea) {
   if (!command.actionTrigger) return;
   command.actionTrigger.forEach(trigger => {
-    if (trigger.action === 'setCondition') {
+    if (trigger.action === 'setState') {
       const [path, subPath] = trigger.target.split('.areaId:');
       if (subPath.includes('.npcs.npcId:')) {
         const [areaId, npcPart] = subPath.split('.npcs.npcId:');
         const npcId = parseInt(npcPart);
         const area = areaData.find(a => a.areaId === parseInt(areaId));
         const npc = area.npcs.find(n => n.npcId === npcId);
-        npc.conditions[trigger.condition] = trigger.value;
+        npc.npcState[trigger.condition] = trigger.value;
         console.log(`Set ${trigger.condition} = ${trigger.value} for NPC ${npc.name}`);
       } else if (subPath.includes('.items.itemId:')) {
         const [areaId, itemPart] = subPath.split('.items.itemId:');
         const itemId = parseInt(itemPart);
         const area = areaData.find(a => a.areaId === parseInt(areaId));
         const item = area.items.find(i => i.itemId === itemId);
-        item.conditions[trigger.condition] = trigger.value;
+        item.itemState[trigger.condition] = trigger.value;
         console.log(`Set ${trigger.condition} = ${trigger.value} for item ${item.name}`);
       } else if (subPath.includes('.secrets.secretId:')) {
         const [areaId, secretPart] = subPath.split('.secrets.secretId:');
         const secretId = parseInt(secretPart);
         const area = areaData.find(a => a.areaId === parseInt(areaId));
         const secret = area.secrets.find(s => s.secretId === secretId);
-        secret.conditions[trigger.condition] = trigger.value;
+        secret.secretState[trigger.condition] = trigger.value;
         console.log(`Set ${trigger.condition} = ${trigger.value} for secret ${secret.name}`);
       } else {
         const area = areaData.find(a => a.areaId === parseInt(subPath));
-        area.conditions[trigger.condition] = trigger.value;
+        area.areaState[trigger.condition] = trigger.value;
         console.log(`Set ${trigger.condition} = ${trigger.value} for area ${area.name}`);
       }
     } else if (trigger.action === 'removeItem') {
@@ -563,10 +560,9 @@ function handleAction(command, currentArea) {
       console.log(`Removed item with ID ${itemPath} from area ${area.name}`);
     } else if (trigger.action === 'addItemToInventory') {
       addItemToInventory(trigger.item);
-      // Only set pickedUp if the item was in the area
       const item = currentArea.items.find(i => i.name === trigger.item);
       if (item) {
-        item.conditions.pickedUp = true;
+        item.itemState.pickedUp = true;
         console.log(`Marked ${trigger.item} as picked up in area`);
       }
     } else if (trigger.action === 'setPlayerArea') {

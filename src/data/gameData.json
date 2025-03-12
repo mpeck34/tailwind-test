@@ -13,7 +13,7 @@
     "inventory": [
       {
         "name": "Sticky Sap",
-        "conditions": {
+        "itemState": {
           "isSticky": true,
           "isSmelly": true,
           "slowsMovement": true
@@ -21,21 +21,21 @@
       },
       {
         "name": "Torch",
-        "conditions": {
+        "itemState": {
           "isLit": false,
           "isSticky": false
         }
       },
       {
         "name": "Golden Coin",
-        "conditions": {
+        "itemState": {
           "isSticky": false,
           "isCursed": false,
           "canBeUsedInTrade": true
         }
       }
     ],
-    "conditions": {
+    "playerState": {
       "isCursed": false
     },
     "completedActions": {
@@ -44,6 +44,10 @@
     },
     "discoveredSecrets": []
   },
+  "globalState":{
+    "hasReturned": false,
+    "playerAlive": true
+  },
   "areas": [
     {
       "areaId": 1,
@@ -51,7 +55,7 @@
       "description": "A peaceful square in the village, with shops and a fountain.",
       "localArea": "village",
       "realm": "Earth",
-      "conditions": {
+      "areaState": {
         "hasBeenVisited": false,
         "isLit": true,
         "isFlooded": false,
@@ -64,12 +68,12 @@
       },
       "environment": {
         "additives": [
-          { "condition": { "type": "areaCondition", "key": "isLit", "value": false }, "text": "The square is shrouded in darkness." },
-          { "condition": { "type": "areaCondition", "key": "isLit", "value": true }, "text": "The square is bathed in warm light." },
-          { "condition": { "type": "areaCondition", "key": "isFlooded", "value": true }, "text": "Water pools around the fountain and shops." },
-          { "condition": { "type": "areaCondition", "key": "villagersAngry", "value": true }, "text": "The villagers glare at you from their doorways." },
-          { "condition": { "type": "areaCondition", "key": "isInvisible", "value": true }, "text": "The square vanishes before your eyes." },
-          { "condition": { "type": "areaCondition", "key": "isHidden", "value": true }, "text": "The square is obscured by a thick mist." }
+          { "condition": { "type": "areaState", "key": "isLit", "value": false }, "text": "The square is shrouded in darkness." },
+          { "condition": { "type": "areaState", "key": "isLit", "value": true }, "text": "The square is bathed in warm light." },
+          { "condition": { "type": "areaState", "key": "isFlooded", "value": true }, "text": "Water pools around the fountain and shops." },
+          { "condition": { "type": "areaState", "key": "villagersAngry", "value": true }, "text": "The villagers glare at you from their doorways." },
+          { "condition": { "type": "areaState", "key": "isInvisible", "value": true }, "text": "The square vanishes before your eyes." },
+          { "condition": { "type": "areaState", "key": "isHidden", "value": true }, "text": "The square is obscured by a thick mist." }
         ]
       },
         "dummyItems":[
@@ -82,7 +86,7 @@
             "npcId": 1,
             "name": "Old Man",
             "description": "An old man with a long white beard, he knows many stories.",
-            "conditions": {
+            "npcState": {
               "hasMetPlayer": false,
               "knowsSecret": true,
               "isAsleep": false,
@@ -104,23 +108,23 @@
                 "command": "talk",
                 "description": "Talk to the Old Man",
                 "response": "The Old Man tells you stories about the village.",
-                "condition": [ { "type": "areaCondition", "key": "spokenToOldMan", "value": false } ],
-                "actionTrigger": [ { "action": "setCondition", "target": "areas.areaId:1", "condition": "spokenToOldMan", "value": true }, { "action": "setCondition", "target": "areas.areaId:1.npcs.npcId:1", "condition": "hasMetPlayer", "value": true } ],
+                "condition": [ { "type": "areaState", "key": "spokenToOldMan", "value": false } ],
+                "actionTrigger": [ { "action": "setState", "target": "areas.areaId:1", "condition": "spokenToOldMan", "value": true }, { "action": "setState", "target": "areas.areaId:1.npcs.npcId:1", "condition": "hasMetPlayer", "value": true } ],
                 "priority": 1
               },
               {
                 "command": "talk",
                 "description": "Talk to the Old Man",
                 "response": "The Old Man gives you a Magic Lens, saying, 'This will help you see hidden truths.'",
-                "condition": [ { "type": "areaCondition", "key": "spokenToOldMan", "value": true }, { "type": "npcCondition", "npc": "Old Man", "key": "hasMagicLens", "value": true } ],
-                "actionTrigger": [ { "action": "addItemToInventory", "item": "Magic Lens" }, { "action": "setCondition", "target": "areas.areaId:1.npcs.npcId:1", "condition": "hasMagicLens", "value": false } ],
+                "condition": [ { "type": "areaState", "key": "spokenToOldMan", "value": true }, { "type": "npcCondition", "npc": "Old Man", "key": "hasMagicLens", "value": true } ],
+                "actionTrigger": [ { "action": "addItemToInventory", "item": "Magic Lens" }, { "action": "setState", "target": "areas.areaId:1.npcs.npcId:1", "condition": "hasMagicLens", "value": false } ],
                 "priority": 3
               },
               {
                 "command": "talk",
                 "description": "Talk to the Old Man",
                 "response": "He warns you to stay away from the dark forest.",
-                "condition": [ { "type": "areaCondition", "key": "spokenToOldMan", "value": true } ],
+                "condition": [ { "type": "areaState", "key": "spokenToOldMan", "value": true } ],
                 "actionTrigger": [],
                 "priority": 2
               },
@@ -140,7 +144,7 @@
             "itemId": 1,
             "name": "Golden Coin",
             "description": "A shiny gold coin, looks valuable.",
-            "conditions": {
+            "itemState": {
               "isHidden": false,
               "isSticky": false,
               "isCursed": false,
@@ -169,9 +173,9 @@
                   { "type": "itemCondition", "key": "pickedUp", "value": false }
                 ],
                 "actionTrigger": [
-                  { "action": "setCondition", "target": "areas.areaId:1.items.itemId:1", "condition": "pickedUp", "value": true },
+                  { "action": "setState", "target": "areas.areaId:1.items.itemId:1", "condition": "pickedUp", "value": true },
                   { "action": "removeItem", "target": "areas.areaId:1.items.itemId:1" },
-                  { "action": "setCondition", "target": "areas.areaId:1", "condition": "villagersAngry", "value": true }
+                  { "action": "setState", "target": "areas.areaId:1", "condition": "villagersAngry", "value": true }
                 ]
               },
               {
@@ -183,7 +187,7 @@
                   { "type": "itemCondition", "key": "pickedUp", "value": false }
                 ],
                 "actionTrigger": [
-                  { "action": "setCondition", "target": "areas.areaId:1.items.itemId:1", "condition": "lookedAt", "value": true }
+                  { "action": "setState", "target": "areas.areaId:1.items.itemId:1", "condition": "lookedAt", "value": true }
                 ],
                 "priority": 1
               },
@@ -217,9 +221,8 @@
             "name": "Hidden Passage",
             "description": "A hidden passage behind the fountain, leads to the forest.",
             "discovery": "Press the fountain button.",
-            "conditions": {
-              "isInvisible": true,
-              "revealedHiddenPassage": false
+            "secretState": {
+              "isInvisible": true
             },
             "commands": [
               {
@@ -228,7 +231,7 @@
                 "description": "Look at the fountain with Magic Lens.",
                 "response": "You notice a strange button on the side of the fountain.",
                 "condition": [ { "type": "hasItem", "item": "Magic Lens" },
-                                { "type": "areaCondition", "key": "revealedHiddenPassage", "value": false } ],
+                                { "type": "areaState", "key": "revealedHiddenPassage", "value": false } ],
                 "priority": 2
               },
               {
@@ -245,9 +248,9 @@
                 "description": "Press the button on the fountain.",
                 "response": "The fountain moves aside, revealing a hidden passage.",
                 "condition": [ { "type": "hasItem", "item": "Magic Lens" },
-                                { "type": "areaCondition", "key": "revealedHiddenPassage", "value": false } ],
-                "actionTrigger": [ { "action": "setCondition", "target": "areas.areaId:1", "condition": "revealedHiddenPassage", "value": true },
-                                  { "action": "setCondition", "target": "areas.areaId:1.secrets.secretId:1", "condition": "isInvisible", "value": false } ],
+                                { "type": "areaState", "key": "revealedHiddenPassage", "value": false } ],
+                "actionTrigger": [ { "action": "setState", "target": "areas.areaId:1", "condition": "revealedHiddenPassage", "value": true },
+                                  { "action": "setState", "target": "areas.areaId:1.secrets.secretId:1", "condition": "isInvisible", "value": false } ],
                 "priority": 2
               },
               {
@@ -263,7 +266,7 @@
                 "target": "hidden passage",
                 "description": "Look at the hidden passage before it’s revealed.",
                 "response": "You don’t see any passage here.",
-                "condition": [ { "type": "areaCondition", "key": "revealedHiddenPassage", "value": false } ],
+                "condition": [ { "type": "areaState", "key": "revealedHiddenPassage", "value": false } ],
                 "priority": 1
               },
               {
@@ -271,7 +274,7 @@
                 "target": "hidden passage",
                 "description": "Look at the revealed hidden passage.",
                 "response": "A narrow passage leads into darkness behind the fountain.",
-                "condition": [ { "type": "areaCondition", "key": "revealedHiddenPassage", "value": true } ],
+                "condition": [ { "type": "areaState", "key": "revealedHiddenPassage", "value": true } ],
                 "priority": 2
               },
               {
@@ -279,7 +282,7 @@
                 "target": "fountain",
                 "description": "Look at the fountain after revealing the passage.",
                 "response": "The fountain is sitting in the flowers. Where is the water coming from?",
-                "condition": [ { "type": "areaCondition", "key": "revealedHiddenPassage", "value": true } ],
+                "condition": [ { "type": "areaState", "key": "revealedHiddenPassage", "value": true } ],
                 "priority": 1
               }
             ]
@@ -341,7 +344,7 @@
             "command": "go passage",
             "description": "Enter the hidden passage.",
             "response": "You slip through the passage to the forest.",
-            "condition": { "type": "areaCondition", "key": "revealedHiddenPassage", "value": true },
+            "condition": { "type": "areaState", "key": "revealedHiddenPassage", "value": true },
             "actionTrigger": [
               { "action": "setPlayerArea", "target": "playerData", "areaId": 2 }
             ]
@@ -355,7 +358,7 @@
       "description": "A dense and dark forest with twisted trees and eerie sounds.",
       "localArea": "forest",
       "realm": "Earth",
-      "conditions": {
+      "areaState": {
         "hasBeenVisited": false,
         "placedStaffInStump": false,
         "isDark": true,
@@ -363,10 +366,10 @@
       },
       "environment": {
         "additives": [
-          { "condition": { "type": "areaCondition", "key": "hasBeenVisited", "value": false }, "text": "The forest feels unfamiliar and foreboding." },
-          { "condition": { "type": "areaCondition", "key": "placedStaffInStump", "value": true }, "text": "A faint glow emanates from the tree stump." },
-          { "condition": { "type": "areaCondition", "key": "isDark", "value": true }, "text": "Shadows cling to every branch, making it hard to see." },
-          { "condition": { "type": "areaCondition", "key": "isOvergrown", "value": true }, "text": "Vines and roots tangle underfoot, slowing your steps." }
+          { "condition": { "type": "areaState", "key": "hasBeenVisited", "value": false }, "text": "The forest feels unfamiliar and foreboding." },
+          { "condition": { "type": "areaState", "key": "placedStaffInStump", "value": true }, "text": "A faint glow emanates from the tree stump." },
+          { "condition": { "type": "areaState", "key": "isDark", "value": true }, "text": "Shadows cling to every branch, making it hard to see." },
+          { "condition": { "type": "areaState", "key": "isOvergrown", "value": true }, "text": "Vines and roots tangle underfoot, slowing your steps." }
         ]
       },
       "npcs": [
@@ -374,15 +377,15 @@
           "npcId": 2,
           "name": "Forest Spirit",
           "description": "A mystical spirit that guides lost travelers.",
-          "conditions": {
+          "npcState": {
             "isInvisible": false,
             "hasMetPlayer": false,
             "hasGivenMushroom": false
           },
           "interactions": [
             { "condition": null, "text": "The forest is dangerous. Stay on the path." },
-            { "condition": { "type": "areaCondition", "key": "placedStaffInStump", "value": true }, "text": "Follow the light if you wish to find your way out." },
-            { "condition": { "type": "npcCondition", "npc": "Forest Spirit", "key": "hasMetPlayer", "value": true }, "text": "You again? The forest still watches." }
+            { "condition": { "type": "areaState", "key": "placedStaffInStump", "value": true }, "text": "Follow the light if you wish to find your way out." },
+            { "condition": { "type": "npcState", "npc": "Forest Spirit", "key": "hasMetPlayer", "value": true }, "text": "You again? The forest still watches." }
           ],
           "commands": [
             {
@@ -391,7 +394,7 @@
               "response": "The spirit warns you of the dangers of straying from the path.",
               "condition": null,
               "actionTrigger": [
-                { "action": "setCondition", "target": "areas.areaId:2.npcs.npcId:2", "condition": "hasMetPlayer", "value": true }
+                { "action": "setState", "target": "areas.areaId:2.npcs.npcId:2", "condition": "hasMetPlayer", "value": true }
               ],
               "priority": 1
             },
@@ -400,12 +403,12 @@
               "description": "Ask the Forest Spirit about the light.",
               "response": "The spirit gives you a Glowing Mushroom to light your way.",
               "condition": [
-                { "type": "npcCondition", "npc": "Forest Spirit", "key": "hasMetPlayer", "value": true },
-                { "type": "npcCondition", "npc": "Forest Spirit", "key": "hasGivenMushroom", "value": false }
+                { "type": "npcState", "npc": "Forest Spirit", "key": "hasMetPlayer", "value": true },
+                { "type": "npcState", "npc": "Forest Spirit", "key": "hasGivenMushroom", "value": false }
               ],
               "actionTrigger": [
                 { "action": "addItemToInventory", "item": "Glowing Mushroom" },
-                { "action": "setCondition", "target": "areas.areaId:2.npcs.npcId:2", "condition": "hasGivenMushroom", "value": true }
+                { "action": "setState", "target": "areas.areaId:2.npcs.npcId:2", "condition": "hasGivenMushroom", "value": true }
               ],
               "priority": 2
             },
@@ -423,14 +426,14 @@
           "itemId": 2,
           "name": "Wooden Staff",
           "description": "A gnarled staff carved from forest wood.",
-          "conditions": {
+          "itemState": {
             "isHidden": false,
             "pickedUp": false
           },
           "interactions": [
             {
               "condition": [
-                { "type": "itemCondition", "key": "pickedUp", "value": false }
+                { "type": "itemState", "key": "pickedUp", "value": false }
               ],
               "text": "The staff lies half-buried in the undergrowth."
             }
@@ -441,10 +444,10 @@
               "description": "Pick up the Wooden Staff.",
               "response": "You pull the staff from the undergrowth and add it to your inventory.",
               "condition": [
-                { "type": "itemCondition", "key": "pickedUp", "value": false }
+                { "type": "itemState", "key": "pickedUp", "value": false }
               ],
               "actionTrigger": [
-                { "action": "setCondition", "target": "areas.areaId:2.items.itemId:2", "condition": "pickedUp", "value": true },
+                { "action": "setState", "target": "areas.areaId:2.items.itemId:2", "condition": "pickedUp", "value": true },
                 { "action": "removeItem", "target": "areas.areaId:2.items.itemId:2" }
               ]
             },
@@ -453,7 +456,7 @@
               "description": "Look at the Wooden Staff.",
               "response": "The staff is rough but sturdy, with strange carvings.",
               "condition": [
-                { "type": "itemCondition", "key": "pickedUp", "value": false }
+                { "type": "itemState", "key": "pickedUp", "value": false }
               ],
               "priority": 1
             }
@@ -466,7 +469,7 @@
           "name": "Tree Stump Portal",
           "description": "A glowing stump that serves as a portal to another realm.",
           "discovery": "Place the Wooden Staff in the stump.",
-          "conditions": {
+          "secretState": {
             "isInvisible": true,
             "revealedPortal": false
           },
@@ -476,7 +479,7 @@
               "description": "Look at the tree stump without staff.",
               "response": "An old stump, unremarkable in the dark.",
               "condition": [
-                { "type": "areaCondition", "key": "placedStaffInStump", "value": false }
+                { "type": "areaState", "key": "placedStaffInStump", "value": false }
               ],
               "priority": 1
             },
@@ -485,7 +488,7 @@
               "description": "Look at the tree stump after placing staff.",
               "response": "The stump glows faintly, it seems to beckon you.",
               "condition": [
-                { "type": "areaCondition", "key": "placedStaffInStump", "value": true }
+                { "type": "areaState", "key": "placedStaffInStump", "value": true }
               ],
               "priority": 2
             },
@@ -495,12 +498,12 @@
               "response": "The stump opens up, creating a glowing portal.",
               "condition": [
                 { "type": "hasItem", "item": "Wooden Staff" },
-                { "type": "areaCondition", "key": "placedStaffInStump", "value": false }
+                { "type": "areaState", "key": "placedStaffInStump", "value": false }
               ],
               "actionTrigger": [
-                { "action": "setCondition", "target": "areas.areaId:2", "condition": "placedStaffInStump", "value": true },
-                { "action": "setCondition", "target": "areas.areaId:2.secrets.secretId:2", "condition": "isInvisible", "value": false },
-                { "action": "setCondition", "target": "areas.areaId:2.secrets.secretId:2", "condition": "revealedPortal", "value": true }
+                { "action": "setState", "target": "areas.areaId:2", "condition": "placedStaffInStump", "value": true },
+                { "action": "setState", "target": "areas.areaId:2.secrets.secretId:2", "condition": "isInvisible", "value": false },
+                { "action": "setState", "target": "areas.areaId:2.secrets.secretId:2", "condition": "revealedPortal", "value": true }
               ]
             }
           ]
@@ -565,7 +568,7 @@
             "command": "use teleport",
             "description": "Use the portal in the tree stump.",
             "response": "You step through the portal and arrive in a new place.",
-            "condition": { "type": "areaCondition", "key": "placedStaffInStump", "value": true },
+            "condition": { "type": "areaState", "key": "placedStaffInStump", "value": true },
             "actionTrigger": [
               { "action": "setPlayerArea", "target": "playerData", "areaId": 3 }
             ]
