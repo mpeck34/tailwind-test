@@ -56,51 +56,57 @@ function displayArea(areaId) {
   return output;
 }
 
-const conditionCache = new Map();
-
+// Check if a condition is true or false
 function checkCondition(condition, currentArea, itemName = undefined) {
   if (!condition) return true;
 
-  const cacheKey = JSON.stringify({ condition, areaId: currentArea.areaId, itemName });
-  if (conditionCache.has(cacheKey)) {
-    return conditionCache.get(cacheKey);
-  }
-
+  // If condition is an array, ensure all conditions pass (AND logic)
   if (Array.isArray(condition)) {
-    const result = condition.every(subCondition => checkCondition(subCondition, currentArea, itemName));
-    conditionCache.set(cacheKey, result);
-    return result;
+    return condition.every(subCondition => checkCondition(subCondition, currentArea, itemName));
   }
 
-  let result;
+  // Handle different condition types
   if (condition.type === 'areaState') {
     const value = currentArea?.areaState?.[condition.key];
-    result = (value ?? false) === condition.value;
-  } else if (condition.type === 'hasItem') {
-    result = playerData?.inventory?.some(i => i.name === condition.item) ?? false;
-    console.log(`Checking if player has "${condition.item}": ${result}`);
-  } else if (condition.type === 'doesNotHaveItem') {
-    result = !(playerData?.inventory?.some(i => i.name === condition.item)) ?? false;
-  } else if (condition.type === 'playerState') {
-    result = (playerData?.playerState?.[condition.key] ?? false) === condition.value;
-  } else if (condition.type === 'npcState') {
+    // Special case for visibility: default to false (visible) if undefined
+    if (condition.key === 'isHidden' || condition.key === 'isInvisible') {
+      return (value ?? false) === condition.value;
+    }
+    // General case: default to false if undefined
+    return (value ?? false) === condition.value;
+  }
+  if (condition.type === 'hasItem') {
+    const hasItem = playerData?.inventory?.some(i => i.name === condition.item) ?? false;
+    console.log(`Checking if player has "${condition.item}": ${hasItem}`);
+    return hasItem;
+  }
+  if (condition.type === 'doesNotHaveItem') {
+    return !(playerData?.inventory?.some(i => i.name === condition.item)) ?? false;
+  }
+  if (condition.type === 'playerState') {
+    const value = playerData?.playerState?.[condition.key] ?? false;
+    return value === condition.value;
+  }
+  if (condition.type === 'npcState') {
     const npc = currentArea?.npcs?.find(n => n.name === condition.npc);
-    result = (npc?.npcState?.[condition.key] ?? false) === condition.value;
-  } else if (condition.type === 'itemCondition') {
+    const value = npc?.npcState?.[condition.key] ?? false;
+    return value === condition.value;
+  }
+  if (condition.type === 'itemCondition') {
     const item = currentArea?.items?.find(i => i.name === itemName);
     console.log(`Item ${itemName} itemState:`, item?.itemState);
     const value = item?.itemState?.[condition.key] ?? false;
     console.log(`Checking ${condition.key}: ${value} for ${itemName}, Item: ${JSON.stringify(item?.itemState)}`);
-    result = value === condition.value;
-  } else if (condition.type === 'secretCondition') {
+    return value === condition.value;
+  }
+  if (condition.type === 'secretCondition') {
     const secret = currentArea?.secrets?.find(s => s.name === itemName);
-    result = (secret?.secretState?.[condition.key] ?? false) === condition.value;
-  } else {
-    result = false;
+    const value = secret?.secretState?.[condition.key] ?? false;
+    return value === condition.value;
   }
 
-  conditionCache.set(cacheKey, result);
-  return result;
+  // If an unknown condition type is given, assume it's not applicable (false)
+  return false;
 }
 
 function addItemToInventory(itemName) {
