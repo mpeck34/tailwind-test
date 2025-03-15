@@ -1,4 +1,4 @@
-import gameData from './data/gameData.json'; // Ensure correct path
+import gameData from './data/gameData.json';
 import inventoryDescriptions from './data/inventoryDescriptions.json';
 import { parseCommand } from './commandParser.js';
 
@@ -110,20 +110,6 @@ function checkCondition(condition, currentArea, itemName = undefined) {
   return false;
 }
 
-function addItemToInventory(itemName) {
-  const itemDescription = invDescriptions.find(item => item.name.toLowerCase() === itemName.toLowerCase());
-  if (itemDescription) {
-      const newItem = {
-          name: itemDescription.name,
-          conditions: { ...itemDescription.defaultStates } //assume default! Check beacuse currently no states or conditions in invdesc
-      };
-      playerData.inventory.push(newItem);
-      console.log(`Added ${itemName} to inventory. Current inventory:`, playerData.inventory);
-  } else {
-      console.error(`Item "${itemName}" not found in invDescriptions. Inventory unchanged.`);
-  }
-}
-
 function parseItemsNpcs(currentArea) {
   let parsedItemsNpcs = [];
 
@@ -169,7 +155,7 @@ function parseCommands(currentArea) {
   let parsedCommands = [];
 
   // Exits
-  currentArea.exits.commands?.forEach(cmd => parsedCommands.push({
+  currentArea.exits?.commands?.forEach(cmd => parsedCommands.push({
     command: cmd.command,
     target: cmd.command.startsWith('go') ? cmd.command.split(' ')[1] || null : null,
     type: 'exit',
@@ -179,14 +165,33 @@ function parseCommands(currentArea) {
   }));
 
   // Items
-  currentArea.items.forEach(item => item.commands.forEach(cmd => parsedCommands.push({
-    command: `${cmd.command} ${item.name.toLowerCase()}`,
-    target: item.name,
-    type: 'item',
-    response: cmd.response,
-    condition: cmd.condition,
-    actionTrigger: cmd.actionTrigger
-  })));
+  currentArea.items.forEach(item => {
+    item.commands.forEach(cmd => {
+      // Use the raw command string for "place" commands with their own targets
+      if (cmd.command.startsWith('place') && cmd.target) {
+        parsedCommands.push({
+          command: cmd.command, // e.g., "place sticky sap"
+          target: cmd.target,   // e.g., "Sticky Sap"
+          type: 'item',
+          response: cmd.response,
+          condition: cmd.condition,
+          actionTrigger: cmd.actionTrigger,
+          priority: cmd.priority || 0
+        });
+      } else {
+        // For other commands, append item name as target
+        parsedCommands.push({
+          command: `${cmd.command} ${item.name.toLowerCase()}`, // e.g., "take golden coin"
+          target: item.name,
+          type: 'item',
+          response: cmd.response,
+          condition: cmd.condition,
+          actionTrigger: cmd.actionTrigger,
+          priority: cmd.priority || 0
+        });
+      }
+    });
+  });
 
   // NPCs
   const npcCommands = {};
@@ -200,30 +205,33 @@ function parseCommands(currentArea) {
         type: 'npc',
         response: cmd.response,
         condition: cmd.condition,
-        actionTrigger: cmd.actionTrigger
+        actionTrigger: cmd.actionTrigger,
+        priority: cmd.priority || 0
       });
     });
   });
   Object.values(npcCommands).forEach(commands => parsedCommands.push(...commands));
 
   // Secrets
-  currentArea.secrets.forEach(secret => secret.commands.forEach(cmd => parsedCommands.push({
-    command: cmd.command,
-    target: cmd.target || secret.name,  // Use cmd.target if provided, else secret.name
-    type: 'secret',
-    response: cmd.response,
-    condition: cmd.condition,
-    actionTrigger: cmd.actionTrigger,
-    priority: cmd.priority  // Include priority for sorting in handleLookCommand
-  })));
+  currentArea.secrets?.forEach(secret => {
+    secret.commands?.forEach(cmd => parsedCommands.push({
+      command: cmd.command,
+      target: cmd.target || secret.name,
+      type: 'secret',
+      response: cmd.response,
+      condition: cmd.condition,
+      actionTrigger: cmd.actionTrigger,
+      priority: cmd.priority || 0
+    }));
+  });
 
   // Inventory
-  playerData.inventory.forEach(item => {
+  playerData.inventory.filter(item => item.itemState.inInventory).forEach(item => {
     parsedCommands.push({
       command: `inventory ${item.name.toLowerCase()}`,
       target: item.name,
       type: 'inventory',
-      response: null, // Handled by handleInventoryItem
+      response: null,
       condition: null
     });
   });
@@ -249,7 +257,7 @@ function parseCommands(currentArea) {
   return parsedCommands;
 }
 
-
+// Look command
 function handleLookCommand(input, parsedCommands, currentArea, target, bestMatch) {
   const output = [];
 
@@ -266,7 +274,7 @@ function handleLookCommand(input, parsedCommands, currentArea, target, bestMatch
     validMatch = bestMatch;
     console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
   } else {
-    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'}`);
+    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'} (target: ${bestMatch?.target || 'none'})`);
     const lookMatches = parsedCommands.filter(c => 
       c.command.startsWith('look') && c.target && 
       c.target.toLowerCase().includes(target.toLowerCase())
@@ -277,9 +285,24 @@ function handleLookCommand(input, parsedCommands, currentArea, target, bestMatch
     console.log(`Fallback selected: ${validMatch ? validMatch.command : 'none'} (target: ${validMatch?.target || 'none'}, priority: ${validMatch?.priority || 0})`);
   }
 
-  if (validMatch) {
-    output.push(validMatch.response || `You see nothing special about the ${target}.`);
+  if (validMatch && validMatch.response) {
+    output.push(validMatch.response);
     handleAction(validMatch, currentArea);
+  } else if (bestMatch && bestMatch.type === 'generic') {
+    const entities = parseItemsNpcs(currentArea);
+    const isValidEntity = entities.some(e => 
+      e.name.toLowerCase() === bestMatch.target.toLowerCase() && 
+      !e.state?.isHidden && !e.state?.isInvisible
+    );
+    if (isValidEntity) {
+      output.push(`You see nothing special about the ${bestMatch.target}.`);
+    } else {
+      const secretMatch = parsedCommands.find(c => 
+        c.command.startsWith('look') && c.type === 'secret' && 
+        c.target.toLowerCase().includes(target.toLowerCase())
+      );
+      output.push(secretMatch ? "The secret remains hidden." : `You don't see "${target}" to look at.`);
+    }
   } else {
     const lookMatches = parsedCommands.filter(c => 
       c.command.startsWith('look') && c.target && 
@@ -355,22 +378,35 @@ function handleTalkCommand(input, parsedCommands, currentArea, target, bestMatch
       bestMatch.target && bestMatch.target.toLowerCase().includes(target.toLowerCase()) &&
       (!bestMatch.condition || checkCondition(bestMatch.condition, currentArea, bestMatch.target))) {
     validMatch = bestMatch;
-    console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target})`);
+    console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
   } else {
+    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'} (target: ${bestMatch?.target || 'none'})`);
     const talkMatches = parsedCommands.filter(c => 
       c.command.startsWith('talk') && c.target && 
       c.target.toLowerCase().includes(target.toLowerCase())
     );
-    validMatch = talkMatches.find(c => 
-      !c.condition || checkCondition(c.condition, currentArea, c.target)
-    );
+    validMatch = talkMatches
+      .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+    console.log(`Fallback selected: ${validMatch ? validMatch.command : 'none'} (target: ${validMatch?.target || 'none'}, priority: ${validMatch?.priority || 0})`);
   }
 
-  if (validMatch) {
+  if (validMatch && validMatch.response) {
     output.push(validMatch.response);
     handleAction(validMatch, currentArea);
+  } else if (bestMatch && bestMatch.type === 'generic') {
+    const entities = parseItemsNpcs(currentArea);
+    const isValidEntity = entities.some(e => 
+      e.name.toLowerCase() === bestMatch.target.toLowerCase() && 
+      !e.state?.isHidden && !e.state?.isInvisible
+    );
+    if (isValidEntity) {
+      output.push(`You can't talk to the ${bestMatch.target}.`);
+    } else {
+      output.push(`There’s nothing matching "${target}" to talk to here.`);
+    }
   } else {
-    output.push(`You don't see "${target}" here to talk to.`);
+    output.push(`There’s nothing matching "${target}" to talk to here.`);
   }
 
   return { needsFurtherInput: false, output };
@@ -402,7 +438,7 @@ function handleTakeCommand(input, parsedCommands, currentArea, target, bestMatch
     validMatch = bestMatch;
     console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
   } else {
-    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'}`);
+    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'} (target: ${bestMatch?.target || 'none'})`);
     const takeMatches = parsedCommands.filter(c => 
       c.command.startsWith('take') && c.target && 
       c.target.toLowerCase().includes(target.toLowerCase())
@@ -413,9 +449,11 @@ function handleTakeCommand(input, parsedCommands, currentArea, target, bestMatch
     console.log(`Fallback selected: ${validMatch ? validMatch.command : 'none'} (target: ${validMatch?.target || 'none'}, priority: ${validMatch?.priority || 0})`);
   }
 
-  if (validMatch) {
-    output.push(validMatch.response || `You take the ${target}.`);
+  if (validMatch && validMatch.response) {
+    output.push(validMatch.response);
     handleAction(validMatch, currentArea);
+  } else if (bestMatch && bestMatch.type === 'generic') {
+    output.push(`You can't take the ${bestMatch.target}.`);
   } else {
     output.push(`There’s nothing matching "${target}" to take here.`);
   }
@@ -423,6 +461,7 @@ function handleTakeCommand(input, parsedCommands, currentArea, target, bestMatch
   return { needsFurtherInput: false, output };
 }
 
+// Push command
 function handlePushCommand(input, parsedCommands, currentArea, target, bestMatch) {
   const output = [];
 
@@ -448,7 +487,7 @@ function handlePushCommand(input, parsedCommands, currentArea, target, bestMatch
     validMatch = bestMatch;
     console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
   } else {
-    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'}`);
+    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'} (target: ${bestMatch?.target || 'none'})`);
     const pushMatches = parsedCommands.filter(c => 
       c.command.startsWith('push') && c.target && 
       c.target.toLowerCase().includes(target.toLowerCase())
@@ -459,9 +498,20 @@ function handlePushCommand(input, parsedCommands, currentArea, target, bestMatch
     console.log(`Fallback selected: ${validMatch ? validMatch.command : 'none'} (target: ${validMatch?.target || 'none'}, priority: ${validMatch?.priority || 0})`);
   }
 
-  if (validMatch) {
-    output.push(validMatch.response || `You push the ${target}.`);
+  if (validMatch && validMatch.response) {
+    output.push(validMatch.response);
     handleAction(validMatch, currentArea);
+  } else if (bestMatch && bestMatch.type === 'generic') {
+    const entities = parseItemsNpcs(currentArea);
+    const isValidEntity = entities.some(e => 
+      e.name.toLowerCase() === bestMatch.target.toLowerCase() && 
+      !e.state?.isHidden && !e.state?.isInvisible
+    );
+    if (isValidEntity) {
+      output.push(`You can't push the ${bestMatch.target}.`);
+    } else {
+      output.push(`There’s nothing matching "${target}" to push here.`);
+    }
   } else {
     output.push(`There’s nothing matching "${target}" to push here.`);
   }
@@ -495,7 +545,7 @@ function handlePullCommand(input, parsedCommands, currentArea, target, bestMatch
     validMatch = bestMatch;
     console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
   } else {
-    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'}`);
+    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'} (target: ${bestMatch?.target || 'none'})`);
     const pullMatches = parsedCommands.filter(c => 
       c.command.startsWith('pull') && c.target && 
       c.target.toLowerCase().includes(target.toLowerCase())
@@ -506,9 +556,20 @@ function handlePullCommand(input, parsedCommands, currentArea, target, bestMatch
     console.log(`Fallback selected: ${validMatch ? validMatch.command : 'none'} (target: ${validMatch?.target || 'none'}, priority: ${validMatch?.priority || 0})`);
   }
 
-  if (validMatch) {
-    output.push(validMatch.response || `You pull the ${target}.`);
+  if (validMatch && validMatch.response) {
+    output.push(validMatch.response);
     handleAction(validMatch, currentArea);
+  } else if (bestMatch && bestMatch.type === 'generic') {
+    const entities = parseItemsNpcs(currentArea);
+    const isValidEntity = entities.some(e => 
+      e.name.toLowerCase() === bestMatch.target.toLowerCase() && 
+      !e.state?.isHidden && !e.state?.isInvisible
+    );
+    if (isValidEntity) {
+      output.push(`You can't pull the ${bestMatch.target}.`);
+    } else {
+      output.push(`There’s nothing matching "${target}" to pull here.`);
+    }
   } else {
     output.push(`There’s nothing matching "${target}" to pull here.`);
   }
@@ -541,7 +602,7 @@ function handleHitCommand(input, parsedCommands, currentArea, target, bestMatch)
     validMatch = bestMatch;
     console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
   } else {
-    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'}`);
+    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'} (target: ${bestMatch?.target || 'none'})`);
     const hitMatches = parsedCommands.filter(c => 
       c.command.startsWith('hit') && c.target && 
       c.target.toLowerCase().includes(target.toLowerCase())
@@ -556,7 +617,16 @@ function handleHitCommand(input, parsedCommands, currentArea, target, bestMatch)
     output.push(validMatch.response);
     handleAction(validMatch, currentArea);
   } else if (bestMatch && bestMatch.type === 'generic') {
-    output.push(`You can't hit the ${bestMatch.target}.`);
+    const entities = parseItemsNpcs(currentArea);
+    const isValidEntity = entities.some(e => 
+      e.name.toLowerCase() === bestMatch.target.toLowerCase() && 
+      !e.state?.isHidden && !e.state?.isInvisible
+    );
+    if (isValidEntity) {
+      output.push(`You can't hit the ${bestMatch.target}.`);
+    } else {
+      output.push(`There’s nothing matching "${target}" to hit here.`);
+    }
   } else {
     output.push(`There’s nothing matching "${target}" to hit here.`);
   }
@@ -589,7 +659,7 @@ function handleUseCommand(input, parsedCommands, currentArea, target, bestMatch)
     validMatch = bestMatch;
     console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
   } else {
-    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'}`);
+    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'} (target: ${bestMatch?.target || 'none'})`);
     const useMatches = parsedCommands.filter(c => 
       c.command.startsWith('use') && c.target && 
       c.target.toLowerCase().includes(target.toLowerCase())
@@ -600,31 +670,50 @@ function handleUseCommand(input, parsedCommands, currentArea, target, bestMatch)
     console.log(`Fallback selected: ${validMatch ? validMatch.command : 'none'} (target: ${validMatch?.target || 'none'}, priority: ${validMatch?.priority || 0})`);
   }
 
-  if (validMatch) {
-    output.push(validMatch.response || `You use the ${target}.`);
+  if (validMatch && validMatch.response) {
+    output.push(validMatch.response);
     handleAction(validMatch, currentArea);
+  } else if (bestMatch && bestMatch.type === 'generic') {
+    const entities = parseItemsNpcs(currentArea);
+    const isValidEntity = entities.some(e => 
+      e.name.toLowerCase() === bestMatch.target.toLowerCase() && 
+      !e.state?.isHidden && !e.state?.isInvisible
+    );
+    if (isValidEntity) {
+      output.push(`You can't use the ${bestMatch.target}.`);
+    } else {
+      output.push(`There’s nothing matching "${target}" to use here.`);
+    }
   } else {
-    output.push(`You can’t use "${target}" here.`);
+    output.push(`There’s nothing matching "${target}" to use here.`);
   }
 
   return { needsFurtherInput: false, output };
 }
 
+
+// Place command
 function handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatch) {
   const output = [];
 
   if (!target) {
     output.push("What would you like to place?");
-    const availableTargets = parsedCommands
-      .filter(c => c.command.startsWith('place') && c.target && 
-                   (!c.condition || checkCondition(c.condition, currentArea, c.target)))
-      .map(c => c.target);
-    if (availableTargets.length > 0) {
-      output.push("You can place:");
-      availableTargets.forEach(item => output.push(`- ${item}`));
+    const invItems = playerData.inventory.filter(item => item.itemState.inInventory).map(item => item.name);
+    if (invItems.length > 0) {
+      output.push("You can place from your inventory:");
+      invItems.forEach(item => output.push(`- ${item}`));
     } else {
-      output.push("There’s nowhere to place anything here.");
+      output.push("You have nothing to place in your inventory.");
     }
+    return { needsFurtherInput: false, output };
+  }
+
+  const invItem = playerData.inventory.find(item => 
+    item.name.toLowerCase().includes(target.toLowerCase()) && item.itemState.inInventory
+  );
+
+  if (!invItem) {
+    output.push(`You don't have anything matching "${target}" in your inventory to place.`);
     return { needsFurtherInput: false, output };
   }
 
@@ -635,7 +724,7 @@ function handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatc
     validMatch = bestMatch;
     console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
   } else {
-    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'}`);
+    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'} (target: ${bestMatch?.target || 'none'})`);
     const placeMatches = parsedCommands.filter(c => 
       c.command.startsWith('place') && c.target && 
       c.target.toLowerCase().includes(target.toLowerCase())
@@ -646,11 +735,13 @@ function handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatc
     console.log(`Fallback selected: ${validMatch ? validMatch.command : 'none'} (target: ${validMatch?.target || 'none'}, priority: ${validMatch?.priority || 0})`);
   }
 
-  if (validMatch) {
-    output.push(validMatch.response || `You place the ${target}.`);
+  if (validMatch && validMatch.response) {
+    output.push(validMatch.response);
     handleAction(validMatch, currentArea);
+  } else if (bestMatch && bestMatch.type === 'generic') {
+    output.push(`You can't place the ${invItem.name} here right now.`);
   } else {
-    output.push(`There’s nowhere to place "${target}" here.`);
+    output.push(`You can't place the ${invItem.name} here right now.`);
   }
 
   return { needsFurtherInput: false, output };
@@ -658,12 +749,11 @@ function handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatc
 
 // Display inventory
 function displayInventory() {
-  if (!playerData.inventory.length) return ['Your inventory is empty.'];
+  const invItems = playerData.inventory.filter(item => item.itemState.inInventory);
+  if (!invItems.length) return ['Your inventory is empty.'];
 
   const output = ['\nYour inventory:'];
-  playerData.inventory.forEach(item => {
-    output.push(`- ${item.name}`);
-  });
+  invItems.forEach(item => output.push(`- ${item.name}`));
   return output;
 }
 
@@ -740,18 +830,23 @@ function handleAction(command, currentArea) {
         area.areaState[trigger.condition] = trigger.value;
         console.log(`Set ${trigger.condition} = ${trigger.value} for area ${area.name}`);
       }
-    } else if (trigger.action === 'removeItem') {
-      const [areaPath, itemPath] = trigger.target.split('.areaId:')[1].split('.items.itemId:');
-      const area = areaData.find(a => a.areaId === parseInt(areaPath));
-      const itemIndex = area.items.findIndex(i => i.itemId === parseInt(itemPath));
-      area.items.splice(itemIndex, 1);
-      console.log(`Removed item with ID ${itemPath} from area ${area.name}`);
     } else if (trigger.action === 'addItemToInventory') {
-      addItemToInventory(trigger.item);
-      const item = currentArea.items.find(i => i.name === trigger.item);
+      const item = playerData.inventory.find(i => i.name.toLowerCase() === trigger.item.toLowerCase());
       if (item) {
-        item.itemState.pickedUp = true;
-        console.log(`Marked ${trigger.item} as picked up in area`);
+        item.itemState.inInventory = true;
+        console.log(`Set ${trigger.item} inInventory = true. Current inventory:`, 
+          playerData.inventory.filter(i => i.itemState.inInventory));
+      } else {
+        console.warn(`Item ${trigger.item} not found in playerData.inventory`);
+      }
+    } else if (trigger.action === 'removeItemFromInventory') {
+      const item = playerData.inventory.find(i => i.name.toLowerCase() === trigger.item.toLowerCase());
+      if (item) {
+        item.itemState.inInventory = false;
+        console.log(`Set ${trigger.item} inInventory = false. Current inventory:`, 
+          playerData.inventory.filter(i => i.itemState.inInventory));
+      } else {
+        console.warn(`Item ${trigger.item} not found in playerData.inventory`);
       }
     } else if (trigger.action === 'setPlayerArea') {
       playerData.currentArea = trigger.areaId;
@@ -802,6 +897,14 @@ function handleCommand(input, isSecondInput) {
       }
       return { needsFurtherInput: false, output: [`Command "${command}" not implemented yet.`] };
   }
+}
+
+export function getPlayerData() {
+  return playerData;
+}
+
+export function updatePlayerData(newData){
+  Object.assign(playerData, newData);
 }
 
 export { handleCommand, displayArea, checkCondition, parseItemsNpcs };

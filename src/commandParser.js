@@ -1,5 +1,7 @@
 // commandParser.js
-import { parseItemsNpcs } from "./game";
+
+import { getPlayerData, parseItemsNpcs } from "./game.js";
+
 
 // Expanded dictionary with synonyms and partials, covering all JSON commands
 const commandDictionary = {
@@ -60,34 +62,50 @@ function parseCommand(input, parsedCommands, currentArea, checkCondition) {
         return { command: null, target: inputTarget, bestMatch: null };
     }
 
-    const bestMatch = findBestCommandMatch(canonicalCommand, inputTarget, parsedCommands, currentArea, checkCondition);
-
-// If no bestMatch but command is valid, resolve target from entities
-if (!bestMatch && inputTarget && Object.values(commandSynonyms).includes(canonicalCommand)) {
+// Resolve target against entities or inventory
+let resolvedTarget = inputTarget;
+if (inputTarget) {
+  if (canonicalCommand === "place") {
+    // For "place", check inventory first
+    const player = getPlayerData();
+    const invItem = player.inventory.find(i => 
+      i.name.toLowerCase().includes(inputTarget.toLowerCase()) &&
+      !i.state?.isHidden && !i.state?.isInvisible
+    );
+    if (invItem) resolvedTarget = invItem.name;
+  } else {
+    // Default: resolve against area entities
     const entities = parseItemsNpcs(currentArea);
     const targetEntity = entities.find(e => {
-        const entityName = e.name.toLowerCase();
-        const words = entityName.split(/\s+/);
-        return words.some(word => word === inputTarget.toLowerCase()) && 
-               !e.state?.isHidden && !e.state?.isInvisible;
+      const entityName = e.name.toLowerCase();
+      const words = entityName.split(/\s+/);
+      return words.some(word => word === inputTarget.toLowerCase()) && 
+             !e.state?.isHidden && !e.state?.isInvisible;
     }) || entities.find(e => 
-        e.name.toLowerCase().includes(inputTarget.toLowerCase()) && 
-        !e.state?.isHidden && !e.state?.isInvisible
+      e.name.toLowerCase().includes(inputTarget.toLowerCase()) && 
+      !e.state?.isHidden && !e.state?.isInvisible
     );
-    const resolvedTarget = targetEntity ? targetEntity.name : inputTarget;
-    return {
-        command: canonicalCommand,
-        target: inputTarget,
-        bestMatch: { command: canonicalCommand, target: resolvedTarget, response: null, type: 'generic' }
-    };
+    if (targetEntity) resolvedTarget = targetEntity.name;
+  }
 }
 
-return {
-    command: canonicalCommand,
-    target: inputTarget,
-    bestMatch: bestMatch || null
-};
-}
+    const bestMatch = findBestCommandMatch(canonicalCommand, resolvedTarget, parsedCommands, currentArea, checkCondition);
+
+    if (!bestMatch && inputTarget && Object.values(commandSynonyms).includes(canonicalCommand)) {
+        const finalTarget = resolvedTarget !== inputTarget ? resolvedTarget : inputTarget;
+        return {
+          command: canonicalCommand,
+          target: inputTarget,
+          bestMatch: { command: canonicalCommand, target: finalTarget, response: null, type: 'generic' }
+        };
+      }
+
+        return {
+            command: canonicalCommand,
+            target: inputTarget,
+            bestMatch: bestMatch || null
+        };
+    }
 
 /**
  * Finds the best command match based on command, target, and conditions.
@@ -104,43 +122,43 @@ function findBestCommandMatch(command, inputTarget, parsedCommands, currentArea,
     const matchingCommands = parsedCommands.filter(c => c.command.startsWith(command));
     if (matchingCommands.length === 0) return null;
     
-    // If no target, return the first valid command with no target requirement
     if (!inputTarget) {
         return matchingCommands
-        .filter(c => !c.target && (!c.condition || checkCondition(c.condition, currentArea, c.target)))
-        .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0] || null;
+            .filter(c => !c.target && (!c.condition || checkCondition(c.condition, currentArea, c.target)))
+            .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0] || null;
     }
 
     const targetMatches = matchingCommands.filter(c => {
-      const cmdTarget = (c.target || '').toLowerCase();
-      return cmdTarget && cmdTarget.includes(inputTarget.toLowerCase());
+        const cmdTarget = (c.target || '').toLowerCase();
+        const words = cmdTarget.split(' ');
+        return words.includes(inputTarget.toLowerCase()) || cmdTarget === inputTarget.toLowerCase();
     });
     console.log('Target matches:', targetMatches.map(m => `${m.command} (target: ${m.target})`));
     
     if (targetMatches.length === 0) return null;
     
     const exactWordMatches = targetMatches.filter(c => {
-      const cmdTarget = c.target.toLowerCase();
-      const words = cmdTarget.split(' ');
-      const isExact = words.includes(inputTarget.toLowerCase());
-      console.log(`Checking exact match for "${cmdTarget}": words=${words}, input="${inputTarget}", exact=${isExact}`);
-      return isExact;
+        const cmdTarget = c.target.toLowerCase();
+        const words = cmdTarget.split(' ');
+        const isExact = words.includes(inputTarget.toLowerCase());
+        console.log(`Checking exact match for "${cmdTarget}": words=${words}, input="${inputTarget}", exact=${isExact}`);
+        return isExact;
     });
     console.log('Exact word matches:', exactWordMatches.map(m => `${m.command} (target: ${m.target})`));
     
     const matchesToUse = exactWordMatches.length > 0 ? exactWordMatches : targetMatches;
     
     if (matchesToUse.length > 1) {
-      console.log(`Ambiguous command "${command} ${inputTarget}" could match:`, 
-        matchesToUse.map(m => `${m.command} (target: ${m.target})`));
+        console.log(`Ambiguous command "${command} ${inputTarget}" could match:`, 
+            matchesToUse.map(m => `${m.command} (target: ${m.target})`));
     }
     
     const validMatches = matchesToUse
-      .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
-      .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+        .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
+        .sort((a, b) => (b.priority || 0) - (a.priority || 0));
     console.log('Valid matches after conditions:', validMatches.map(m => `${m.command} (target: ${m.target}, priority: ${m.priority || 0})`));
     
     return validMatches[0] || null;
-  }
-  
-  export { parseCommand };
+}
+
+export { parseCommand };

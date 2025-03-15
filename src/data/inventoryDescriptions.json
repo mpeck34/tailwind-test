@@ -54,7 +54,12 @@
       {
         "name": "Magic Lens",
         "description": "A mystical lens that reveals hidden truths.",
-        "lookBlurbs": []
+        "lookBlurbs": [
+          "I can see through time!",
+          "It's from the bottom of a cracker jack box.",
+          "If only I could see a way out of here.",
+          "Maybe it's just an ordinary magnifying glass?"
+        ]
       }
     ]
   }

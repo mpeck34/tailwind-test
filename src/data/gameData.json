@@ -14,6 +14,7 @@
       {
         "name": "Sticky Sap",
         "itemState": {
+          "inInventory" : false,
           "isSticky": true,
           "isSmelly": true,
           "slowsMovement": true
@@ -22,6 +23,7 @@
       {
         "name": "Torch",
         "itemState": {
+          "inInventory" : true,
           "isLit": false,
           "isSticky": false
         }
@@ -29,11 +31,18 @@
       {
         "name": "Golden Coin",
         "itemState": {
+          "inInventory" : false,
           "isSticky": false,
           "isCursed": false,
           "canBeUsedInTrade": true
         }
+      },
+      {
+        "name": "Magic Lens",
+        "itemState": {
+          "inInventory" : false
       }
+    }
     ],
     "playerState": {
       "isCursed": false
@@ -50,7 +59,7 @@
   },
   "areas": [
     {
-      "areaId": 1,
+      "areaId": "MM5",
       "name": "Village Square",
       "description": "A peaceful square in the village, with shops and a fountain.",
       "localArea": "village",
@@ -107,10 +116,13 @@
               {
                 "command": "talk",
                 "description": "Talk to the Old Man",
-                "response": "The Old Man tells you stories about the village.",
+                "response": "The Old Man tells you stories about the village and hands you some Sticky Sap.",
                 "condition": [ { "type": "areaState", "key": "spokenToOldMan", "value": false } ],
-                "actionTrigger": [ { "action": "setState", "target": "areas.areaId:1", "condition": "spokenToOldMan", "value": true },
-                                    { "action": "setState", "target": "areas.areaId:1.npcs.npcId:1", "condition": "hasMetPlayer", "value": true } ],
+                "actionTrigger": [
+                  { "action": "setState", "target": "areas.areaId:1", "condition": "spokenToOldMan", "value": true },
+                  { "action": "setState", "target": "areas.areaId:1.npcs.npcId:1", "condition": "hasMetPlayer", "value": true },
+                  { "action": "addItemToInventory", "item": "Sticky Sap" }
+                ],
                 "priority": 1
               },
               {
@@ -165,6 +177,10 @@
               {
                 "condition": { "type": "itemState", "key": "isCursed", "value": true },
                 "text": "The coin feels unnaturally cold in your presence."
+              },
+              {
+                "condition": { "type": "itemState", "key": "isSticky", "value": true },
+                "text": "The coin looks oddly shiny and sticky."
               }
             ],
             "commands": [
@@ -207,13 +223,42 @@
               {
                 "command": "look",
                 "description": "Look at the sticky Golden Coin.",
-                "response": "The coin appears it may be stuck to the ground.",
+                "response": "You're hoping the coin isn't stuck to the ground.",
                 "condition": [
                   { "type": "itemState", "key": "lookedAt", "value": true },
                   { "type": "itemState", "key": "pickedUp", "value": false },
                   { "type": "itemState", "key": "isSticky", "value": true }
                 ],
                 "priority": 3
+              },
+              {
+                "command": "place sticky sap",
+                "target": "Sticky Sap",
+                "description": "Place the Sticky Sap on the Golden Coin.",
+                "response": "You smear the Sticky Sap onto the Golden Coin, making it sticky.",
+                "condition": [
+                  { "type": "itemInInventory", "item": "Sticky Sap" },
+                  { "type": "itemState", "area": "areas.areaId:1", "item": "Golden Coin", "key": "pickedUp", "value": false }
+                ],
+                "actionTrigger": [
+                  { "action": "setState", "target": "areas.areaId:1.items.itemId:1", "condition": "isSticky", "value": true },
+                  { "action": "removeItemFromInventory", "item": "Sticky Sap" }
+                ],
+                "priority": 1
+              },
+              {
+                "command": "place golden coin",
+                "target": "Golden Coin",
+                "description": "Place the Golden Coin back in the square.",
+                "response": "You place the Golden Coin back in the square.",
+                "condition": [
+                  { "type": "itemInInventory", "item": "Golden Coin" }
+                ],
+                "actionTrigger": [
+                  { "action": "setState", "target": "areas.areaId:1.items.itemId:1", "condition": "pickedUp", "value": false },
+                  { "action": "removeItemFromInventory", "item": "Golden Coin" }
+                ],
+                "priority": 1
               }
             ]
           }
@@ -292,25 +337,25 @@
           }
       ],
       "exits": {
-        "north": 2,
-        "south": 3,
-        "east": 4,
-        "west": 5,
-        "up": null,
-        "down": null,
+        "north": "MN5",
+        "south": null,
+        "east": "NM5",
+        "west": "LM5",
+        "up": "MM6",
+        "down": "MM4",
         "teleport": null,
-        "passage": 2,
+        "passage": "MNS5",
         "commands": [
           {
             "command": "go north",
-            "description": "Move to the north exit.",
-            "response": "You head towards the northern path.",
+            "description": "This way to the dark forest is blocked.",
+            "response": "Trees block your path.",
             "condition": null
           },
           {
             "command": "go south",
             "description": "Move to the south exit.",
-            "response": "You walk towards the southern path.",
+            "response": "You travel to the southern path.",
             "condition": null
           },
           {
@@ -356,7 +401,7 @@
       }
     },
     {
-      "areaId": 2,
+      "areaId": "ML5",
       "name": "Dark Forest",
       "description": "A dense and dark forest with twisted trees and eerie sounds.",
       "localArea": "forest",
@@ -513,14 +558,14 @@
         }
       ],
       "exits": {
-        "north": null,
-        "south": 1,
+        "north": "null",
+        "south": "MM5",
         "east": null,
         "west": null,
         "up": null,
         "down": null,
         "teleport": 3,
-        "passage": 1,
+        "passage": null,
         "commands": [
           {
             "command": "go north",
