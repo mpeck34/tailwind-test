@@ -92,14 +92,15 @@ function checkCondition(condition, currentArea, itemName = undefined) {
     const value = npc?.npcState?.[condition.key] ?? false;
     return value === condition.value;
   }
-  if (condition.type === 'itemCondition') {
+  if (condition.type === 'itemState') {
     const item = currentArea?.items?.find(i => i.name === itemName);
+    console.log(`Checking itemState for ${itemName}: ${condition.key}=${condition.value}, actual=${item?.itemState?.[condition.key]}`);
     console.log(`Item ${itemName} itemState:`, item?.itemState);
     const value = item?.itemState?.[condition.key] ?? false;
     console.log(`Checking ${condition.key}: ${value} for ${itemName}, Item: ${JSON.stringify(item?.itemState)}`);
     return value === condition.value;
   }
-  if (condition.type === 'secretCondition') {
+  if (condition.type === 'secretState') {
     const secret = currentArea?.secrets?.find(s => s.name === itemName);
     const value = secret?.secretState?.[condition.key] ?? false;
     return value === condition.value;
@@ -249,38 +250,50 @@ function parseCommands(currentArea) {
 }
 
 
-function handleLookCommand(input, parsedCommands, currentArea) {
+function handleLookCommand(input, parsedCommands, currentArea, target, bestMatch) {
   const output = [];
-  const lookTarget = input.toLowerCase().slice(4).trim();
 
-  if (!lookTarget) {
+  if (!target) {
     output.push("You look around you.");
     output.push(...displayArea(currentArea.areaId));
     return { needsFurtherInput: false, output };
   }
 
-  const lookMatches = parsedCommands.filter(c => 
-    c.command.startsWith('look') && c.target && 
-    c.target.toLowerCase().includes(lookTarget)
-  );
-
-  // Check all conditions and if multiple commands have all conditions met...
-  // Sort by priority
-  const validMatch = lookMatches
-  .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
-  .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+  let validMatch = null;
+  if (bestMatch && bestMatch.command.startsWith('look') && 
+      bestMatch.target && bestMatch.target.toLowerCase().includes(target.toLowerCase()) &&
+      (!bestMatch.condition || checkCondition(bestMatch.condition, currentArea, bestMatch.target))) {
+    validMatch = bestMatch;
+    console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
+  } else {
+    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'}`);
+    const lookMatches = parsedCommands.filter(c => 
+      c.command.startsWith('look') && c.target && 
+      c.target.toLowerCase().includes(target.toLowerCase())
+    );
+    validMatch = lookMatches
+      .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+    console.log(`Fallback selected: ${validMatch ? validMatch.command : 'none'} (target: ${validMatch?.target || 'none'}, priority: ${validMatch?.priority || 0})`);
+  }
 
   if (validMatch) {
-    output.push(validMatch.response || `You see nothing special about the ${lookTarget}.`);
+    output.push(validMatch.response || `You see nothing special about the ${target}.`);
     handleAction(validMatch, currentArea);
-  } else if (lookMatches.length > 0) {
-    output.push(`You can't look at "${lookTarget}" right now.`);
   } else {
-    const secretMatch = parsedCommands.find(c => 
-      c.command.startsWith('look') && c.type === 'secret' && 
-      c.target.toLowerCase().includes(lookTarget)
+    const lookMatches = parsedCommands.filter(c => 
+      c.command.startsWith('look') && c.target && 
+      c.target.toLowerCase().includes(target.toLowerCase())
     );
-    output.push(secretMatch ? "The secret remains hidden." : `You don't see "${lookTarget}" to look at.`);
+    if (lookMatches.length > 0) {
+      output.push(`You can't look at "${target}" right now.`);
+    } else {
+      const secretMatch = parsedCommands.find(c => 
+        c.command.startsWith('look') && c.type === 'secret' && 
+        c.target.toLowerCase().includes(target.toLowerCase())
+      );
+      output.push(secretMatch ? "The secret remains hidden." : `You don't see "${target}" to look at.`);
+    }
   }
 
   return { needsFurtherInput: false, output };
@@ -322,149 +335,324 @@ function handleGoCommand(input, parsedCommands, currentArea) {
 }
 
 // Talk command
-function handleTalkCommand(input, parsedCommands, currentArea, isSecondInput) {
+function handleTalkCommand(input, parsedCommands, currentArea, target, bestMatch) {
   const output = [];
-  const talkTarget = input.toLowerCase().slice(5).trim();
 
-  if (!talkTarget) {
-    output.push('Who would you like to talk to?');
+  if (!target) {
+    output.push("Who would you like to talk to?");
     const uniqueNpcs = [...new Set(parsedCommands
-      .filter(c => c.command.startsWith('talk') && c.target)
+      .filter(c => c.command.startsWith('talk') && c.target && 
+                   (!c.condition || checkCondition(c.condition, currentArea, c.target)))
       .map(c => c.target))];
     if (uniqueNpcs.length > 0) {
       uniqueNpcs.forEach(npc => output.push(`- ${npc}`));
     }
-    return { needsFurtherInput: true, output };
+    return { needsFurtherInput: false, output };
   }
 
-  // Find all talk commands for the target
-  const talkMatches = parsedCommands.filter(c => 
-    c.command.startsWith('talk') && c.target && 
-    c.target.toLowerCase().includes(talkTarget)
-  );
-  console.log('talkMatches:', talkMatches.map(m => ({ command: m.command, target: m.target, type: m.type, condition: m.condition })));
-
-  // Pick the first match where condition passes (or no condition)
-  const validMatch = talkMatches.find(c => 
-    !c.condition || checkCondition(c.condition, currentArea, c.target)
-  );
-
-  if (validMatch) {
-    output.push(validMatch.response);
-    handleAction(validMatch, currentArea);
-  } else if (talkMatches.length > 0) {
-    output.push(`"${talkTarget}" doesn't want to talk right now.`);
+  let validMatch = null;
+  if (bestMatch && bestMatch.command.startsWith('talk') && 
+      bestMatch.target && bestMatch.target.toLowerCase().includes(target.toLowerCase()) &&
+      (!bestMatch.condition || checkCondition(bestMatch.condition, currentArea, bestMatch.target))) {
+    validMatch = bestMatch;
+    console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target})`);
   } else {
-    output.push(`You don't see "${talkTarget}" here to talk to.`);
+    const talkMatches = parsedCommands.filter(c => 
+      c.command.startsWith('talk') && c.target && 
+      c.target.toLowerCase().includes(target.toLowerCase())
+    );
+    validMatch = talkMatches.find(c => 
+      !c.condition || checkCondition(c.condition, currentArea, c.target)
+    );
   }
-
-  console.log('talkMatches:', talkMatches);
-  console.log('validMatch:', validMatch);
-  return { needsFurtherInput: false, output };
-}
-
-// Take command
-function handleTakeCommand(input, parsedCommands, currentArea) {
-  const output = [];
-  const takeTarget = input.toLowerCase().slice(5).trim();
-
-  const takeMatches = parsedCommands.filter(c => 
-    c.command.startsWith('take') && c.target && 
-    c.target.toLowerCase().includes(takeTarget)
-  );
-  const validMatch = takeMatches.find(c => 
-    !c.condition || checkCondition(c.condition, currentArea, c.target)
-  );
 
   if (validMatch) {
     output.push(validMatch.response);
     handleAction(validMatch, currentArea);
   } else {
-    output.push(`There’s nothing matching "${takeTarget}" to take here.`);
+    output.push(`You don't see "${target}" here to talk to.`);
   }
 
   return { needsFurtherInput: false, output };
 }
 
-// Push command
-function handlePushCommand(input, parsedCommands, currentArea) {
+// Take command
+function handleTakeCommand(input, parsedCommands, currentArea, target, bestMatch) {
   const output = [];
-  const fullCommand = input.toLowerCase().trim();
-  const pushMatches = parsedCommands.filter(c => c.command === fullCommand);
-  const validMatch = pushMatches
-    .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
-    .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+
+  if (!target) {
+    output.push("What would you like to take?");
+    const availableItems = parsedCommands
+      .filter(c => c.command.startsWith('take') && c.target && 
+                   (!c.condition || checkCondition(c.condition, currentArea, c.target)))
+      .map(c => c.target);
+    if (availableItems.length > 0) {
+      output.push("You can take:");
+      availableItems.forEach(item => output.push(`- ${item}`));
+    } else {
+      output.push("There’s nothing to take here.");
+    }
+    return { needsFurtherInput: false, output };
+  }
+
+  let validMatch = null;
+  if (bestMatch && bestMatch.command.startsWith('take') && 
+      bestMatch.target && bestMatch.target.toLowerCase().includes(target.toLowerCase()) &&
+      (!bestMatch.condition || checkCondition(bestMatch.condition, currentArea, bestMatch.target))) {
+    validMatch = bestMatch;
+    console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
+  } else {
+    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'}`);
+    const takeMatches = parsedCommands.filter(c => 
+      c.command.startsWith('take') && c.target && 
+      c.target.toLowerCase().includes(target.toLowerCase())
+    );
+    validMatch = takeMatches
+      .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+    console.log(`Fallback selected: ${validMatch ? validMatch.command : 'none'} (target: ${validMatch?.target || 'none'}, priority: ${validMatch?.priority || 0})`);
+  }
+
   if (validMatch) {
-    output.push(validMatch.response);
+    output.push(validMatch.response || `You take the ${target}.`);
     handleAction(validMatch, currentArea);
   } else {
-    output.push(`There’s nothing to push here.`);
+    output.push(`There’s nothing matching "${target}" to take here.`);
   }
+
+  return { needsFurtherInput: false, output };
+}
+
+function handlePushCommand(input, parsedCommands, currentArea, target, bestMatch) {
+  const output = [];
+
+  if (!target) {
+    output.push("What would you like to push?");
+    const availableTargets = parsedCommands
+      .filter(c => c.command.startsWith('push') && c.target && 
+                   (!c.condition || checkCondition(c.condition, currentArea, c.target)))
+      .map(c => c.target);
+    if (availableTargets.length > 0) {
+      output.push("You can push:");
+      availableTargets.forEach(item => output.push(`- ${item}`));
+    } else {
+      output.push("There’s nothing to push here.");
+    }
+    return { needsFurtherInput: false, output };
+  }
+
+  let validMatch = null;
+  if (bestMatch && bestMatch.command.startsWith('push') && 
+      bestMatch.target && bestMatch.target.toLowerCase().includes(target.toLowerCase()) &&
+      (!bestMatch.condition || checkCondition(bestMatch.condition, currentArea, bestMatch.target))) {
+    validMatch = bestMatch;
+    console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
+  } else {
+    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'}`);
+    const pushMatches = parsedCommands.filter(c => 
+      c.command.startsWith('push') && c.target && 
+      c.target.toLowerCase().includes(target.toLowerCase())
+    );
+    validMatch = pushMatches
+      .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+    console.log(`Fallback selected: ${validMatch ? validMatch.command : 'none'} (target: ${validMatch?.target || 'none'}, priority: ${validMatch?.priority || 0})`);
+  }
+
+  if (validMatch) {
+    output.push(validMatch.response || `You push the ${target}.`);
+    handleAction(validMatch, currentArea);
+  } else {
+    output.push(`There’s nothing matching "${target}" to push here.`);
+  }
+
   return { needsFurtherInput: false, output };
 }
 
 // Pull command
-function handlePullCommand(input, parsedCommands, currentArea) {
+function handlePullCommand(input, parsedCommands, currentArea, target, bestMatch) {
   const output = [];
-  const fullCommand = input.toLowerCase().trim();
-  const pullMatches = parsedCommands.filter(c => c.command === fullCommand);
-  const validMatch = pullMatches
-    .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
-    .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+
+  if (!target) {
+    output.push("What would you like to pull?");
+    const availableTargets = parsedCommands
+      .filter(c => c.command.startsWith('pull') && c.target && 
+                   (!c.condition || checkCondition(c.condition, currentArea, c.target)))
+      .map(c => c.target);
+    if (availableTargets.length > 0) {
+      output.push("You can pull:");
+      availableTargets.forEach(item => output.push(`- ${item}`));
+    } else {
+      output.push("There’s nothing to pull here.");
+    }
+    return { needsFurtherInput: false, output };
+  }
+
+  let validMatch = null;
+  if (bestMatch && bestMatch.command.startsWith('pull') && 
+      bestMatch.target && bestMatch.target.toLowerCase().includes(target.toLowerCase()) &&
+      (!bestMatch.condition || checkCondition(bestMatch.condition, currentArea, bestMatch.target))) {
+    validMatch = bestMatch;
+    console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
+  } else {
+    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'}`);
+    const pullMatches = parsedCommands.filter(c => 
+      c.command.startsWith('pull') && c.target && 
+      c.target.toLowerCase().includes(target.toLowerCase())
+    );
+    validMatch = pullMatches
+      .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+    console.log(`Fallback selected: ${validMatch ? validMatch.command : 'none'} (target: ${validMatch?.target || 'none'}, priority: ${validMatch?.priority || 0})`);
+  }
+
   if (validMatch) {
-    output.push(validMatch.response);
+    output.push(validMatch.response || `You pull the ${target}.`);
     handleAction(validMatch, currentArea);
   } else {
-    output.push(`There’s nothing to pull here.`);
+    output.push(`There’s nothing matching "${target}" to pull here.`);
   }
+
   return { needsFurtherInput: false, output };
 }
 
-function handlePressCommand(input, parsedCommands, currentArea) {
+function handleHitCommand(input, parsedCommands, currentArea, target, bestMatch) {
   const output = [];
-  const fullCommand = input.toLowerCase().trim();
-  const pressMatches = parsedCommands.filter(c => c.command === fullCommand);
-  const validMatch = pressMatches
-    .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
-    .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
-  if (validMatch) {
+
+  if (!target) {
+    output.push("What would you like to hit?");
+    const availableTargets = parsedCommands
+      .filter(c => c.command.startsWith('hit') && c.target && 
+                   (!c.condition || checkCondition(c.condition, currentArea, c.target)))
+      .map(c => c.target);
+    if (availableTargets.length > 0) {
+      output.push("You can hit:");
+      availableTargets.forEach(item => output.push(`- ${item}`));
+    } else {
+      output.push("There’s nothing to hit here.");
+    }
+    return { needsFurtherInput: false, output };
+  }
+
+  let validMatch = null;
+  if (bestMatch && bestMatch.command.startsWith('hit') && 
+      bestMatch.target && bestMatch.target.toLowerCase().includes(target.toLowerCase()) &&
+      (!bestMatch.condition || checkCondition(bestMatch.condition, currentArea, bestMatch.target))) {
+    validMatch = bestMatch;
+    console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
+  } else {
+    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'}`);
+    const hitMatches = parsedCommands.filter(c => 
+      c.command.startsWith('hit') && c.target && 
+      c.target.toLowerCase().includes(target.toLowerCase())
+    );
+    validMatch = hitMatches
+      .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+    console.log(`Fallback selected: ${validMatch ? validMatch.command : 'none'} (target: ${validMatch?.target || 'none'}, priority: ${validMatch?.priority || 0})`);
+  }
+
+  if (validMatch && validMatch.response) {
     output.push(validMatch.response);
     handleAction(validMatch, currentArea);
+  } else if (bestMatch && bestMatch.type === 'generic') {
+    output.push(`You can't hit the ${bestMatch.target}.`);
   } else {
-    output.push(`There’s nothing to press here.`);
+    output.push(`There’s nothing matching "${target}" to hit here.`);
   }
+
   return { needsFurtherInput: false, output };
 }
 
-function handleUseCommand(input, parsedCommands, currentArea) {
+function handleUseCommand(input, parsedCommands, currentArea, target, bestMatch) {
   const output = [];
-  const fullCommand = input.toLowerCase().trim();
-  const useMatches = parsedCommands.filter(c => c.command === fullCommand);
-  const validMatch = useMatches
-    .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
-    .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+
+  if (!target) {
+    output.push("What would you like to use?");
+    const availableTargets = parsedCommands
+      .filter(c => c.command.startsWith('use') && c.target && 
+                   (!c.condition || checkCondition(c.condition, currentArea, c.target)))
+      .map(c => c.target);
+    if (availableTargets.length > 0) {
+      output.push("You can use:");
+      availableTargets.forEach(item => output.push(`- ${item}`));
+    } else {
+      output.push("There’s nothing to use here.");
+    }
+    return { needsFurtherInput: false, output };
+  }
+
+  let validMatch = null;
+  if (bestMatch && bestMatch.command.startsWith('use') && 
+      bestMatch.target && bestMatch.target.toLowerCase().includes(target.toLowerCase()) &&
+      (!bestMatch.condition || checkCondition(bestMatch.condition, currentArea, bestMatch.target))) {
+    validMatch = bestMatch;
+    console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
+  } else {
+    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'}`);
+    const useMatches = parsedCommands.filter(c => 
+      c.command.startsWith('use') && c.target && 
+      c.target.toLowerCase().includes(target.toLowerCase())
+    );
+    validMatch = useMatches
+      .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+    console.log(`Fallback selected: ${validMatch ? validMatch.command : 'none'} (target: ${validMatch?.target || 'none'}, priority: ${validMatch?.priority || 0})`);
+  }
+
   if (validMatch) {
-    output.push(validMatch.response);
+    output.push(validMatch.response || `You use the ${target}.`);
     handleAction(validMatch, currentArea);
   } else {
-    output.push(`You can’t use "${fullCommand.slice(4).trim()}" here.`);
+    output.push(`You can’t use "${target}" here.`);
   }
+
   return { needsFurtherInput: false, output };
 }
 
-function handlePlaceCommand(input, parsedCommands, currentArea) {
+function handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatch) {
   const output = [];
-  const fullCommand = input.toLowerCase().trim();
-  const placeMatches = parsedCommands.filter(c => c.command === fullCommand);
-  const validMatch = placeMatches
-    .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
-    .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+
+  if (!target) {
+    output.push("What would you like to place?");
+    const availableTargets = parsedCommands
+      .filter(c => c.command.startsWith('place') && c.target && 
+                   (!c.condition || checkCondition(c.condition, currentArea, c.target)))
+      .map(c => c.target);
+    if (availableTargets.length > 0) {
+      output.push("You can place:");
+      availableTargets.forEach(item => output.push(`- ${item}`));
+    } else {
+      output.push("There’s nowhere to place anything here.");
+    }
+    return { needsFurtherInput: false, output };
+  }
+
+  let validMatch = null;
+  if (bestMatch && bestMatch.command.startsWith('place') && 
+      bestMatch.target && bestMatch.target.toLowerCase().includes(target.toLowerCase()) &&
+      (!bestMatch.condition || checkCondition(bestMatch.condition, currentArea, bestMatch.target))) {
+    validMatch = bestMatch;
+    console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
+  } else {
+    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'}`);
+    const placeMatches = parsedCommands.filter(c => 
+      c.command.startsWith('place') && c.target && 
+      c.target.toLowerCase().includes(target.toLowerCase())
+    );
+    validMatch = placeMatches
+      .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+    console.log(`Fallback selected: ${validMatch ? validMatch.command : 'none'} (target: ${validMatch?.target || 'none'}, priority: ${validMatch?.priority || 0})`);
+  }
+
   if (validMatch) {
-    output.push(validMatch.response);
+    output.push(validMatch.response || `You place the ${target}.`);
     handleAction(validMatch, currentArea);
   } else {
-    output.push(`There’s nowhere to place "${fullCommand.slice(6).trim()}" here.`);
+    output.push(`There’s nowhere to place "${target}" here.`);
   }
+
   return { needsFurtherInput: false, output };
 }
 
@@ -587,26 +775,26 @@ function handleCommand(input, isSecondInput) {
 
   switch (command) {
     case 'look':
-      return handleLookCommand(input, parsedCommands, currentArea);
+      return handleLookCommand(input, parsedCommands, currentArea, target, bestMatch);
     case 'go':
       return handleGoCommand(input, parsedCommands, currentArea);
     case 'talk':
-      return handleTalkCommand(input, parsedCommands, currentArea, isSecondInput);
+      return handleTalkCommand(input, parsedCommands, currentArea, target, bestMatch);
     case 'take':
-      return handleTakeCommand(input, parsedCommands, currentArea);
+      return handleTakeCommand(input, parsedCommands, currentArea, target, bestMatch);
     case 'push':
-      return handlePushCommand(input, parsedCommands, currentArea);
+      return handlePushCommand(input, parsedCommands, currentArea, target, bestMatch);
     case 'pull':
-      return handlePullCommand(input, parsedCommands, currentArea);
+      return handlePullCommand(input, parsedCommands, currentArea, target, bestMatch);
     case 'inventory':
       if (!target) return { needsFurtherInput: false, output: displayInventory() };
       return handleInventoryItem(`${command} ${target}`);
-    case 'press':
-      return handlePressCommand(input, parsedCommands, currentArea);
+    case 'hit':
+      return handleHitCommand(input, parsedCommands, currentArea, target, bestMatch);
     case 'use':
-      return handleUseCommand(input, parsedCommands, currentArea);
+      return handleUseCommand(input, parsedCommands, currentArea, target, bestMatch);
     case 'place':
-      return handlePlaceCommand(input, parsedCommands, currentArea);
+      return handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatch);
     default:
       if (bestMatch) {
         handleAction(bestMatch, currentArea);
@@ -616,4 +804,4 @@ function handleCommand(input, isSecondInput) {
   }
 }
 
-export { handleCommand, displayArea, checkCondition };
+export { handleCommand, displayArea, checkCondition, parseItemsNpcs };

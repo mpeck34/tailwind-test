@@ -1,17 +1,18 @@
 // commandParser.js
+import { parseItemsNpcs } from "./game";
 
 // Expanded dictionary with synonyms and partials, covering all JSON commands
 const commandDictionary = {
-    "look": ["loo", "lk", "see", "view", "examine", "peek", "observe", "lok", "lo", "l"],
-    "talk": ["tal", "tk", "chat", "speak", "converse", "say", "ta"],
-    "inventory": ["inv", "invent", "items", "gear", "stuff", "in"],
-    "take": ["get", "grab", "pickup", "snag", "collect", "tak"],
-    "go": ["move", "travel", "head", "walk", "run", "g"],
-    "push": ["shove", "nudge"],
-    "pull": ["tug", "yank"],
-    "press": ["push", "prs", "pre"], // For "press button"
-    "use": ["utilize", "activate", "us"], // For "use teleport"
-    "place": ["put", "set", "pla"] // For "place staff in stump"
+    "look": ["loo", "lk", "see", "view", "examine", "peek", "observe", "lok", "lo", "l", "watch", "inspect", "check", "v"],
+    "talk": ["tal", "tk", "chat", "speak", "converse", "say", "ta", "spk", "tell", "speak with"],
+    "inventory": ["inv", "invent", "items", "gear", "stuff", "in", "i", "bag", "list", "itm"],
+    "take": ["get", "grab", "pickup", "snag", "collect", "tak", "tke", "t", "grb", "pick"],
+    "go": ["move", "travel", "head", "walk", "run", "g", "mv", "go to", "wlk"],
+    "push": ["shove", "nudge", "psh", "pu", "shv"],
+    "pull": ["tug", "yank", "pul", "pl", "yg"],
+    "hit": ["hit", "tap", "smash", "whack", "bonk"],
+    "use": ["utilize", "activate", "us", "u", "act", "employ"],
+    "place": ["put", "set", "pla", "pt", "drop", "lay"]
 };
 
 // Generate commandSynonyms from commandDictionary
@@ -31,6 +32,7 @@ const MIN_COMMAND_LENGTH = 2;
  * @param {Array} parsedCommands - List of available commands from parseCommands().
  * @param {Object} currentArea - The current area object for condition checking.
  * @param {Function} checkCondition - Function to evaluate command conditions.
+ * @param {Function} parseItemsNpcs - Function to list all current area interactables.
  * @returns {Object} - { command: string|null, target: string|null, bestMatch: Object|null }
  */
 function parseCommand(input, parsedCommands, currentArea, checkCondition) {
@@ -60,11 +62,31 @@ function parseCommand(input, parsedCommands, currentArea, checkCondition) {
 
     const bestMatch = findBestCommandMatch(canonicalCommand, inputTarget, parsedCommands, currentArea, checkCondition);
 
+// If no bestMatch but command is valid, resolve target from entities
+if (!bestMatch && inputTarget && Object.values(commandSynonyms).includes(canonicalCommand)) {
+    const entities = parseItemsNpcs(currentArea);
+    const targetEntity = entities.find(e => {
+        const entityName = e.name.toLowerCase();
+        const words = entityName.split(/\s+/);
+        return words.some(word => word === inputTarget.toLowerCase()) && 
+               !e.state?.isHidden && !e.state?.isInvisible;
+    }) || entities.find(e => 
+        e.name.toLowerCase().includes(inputTarget.toLowerCase()) && 
+        !e.state?.isHidden && !e.state?.isInvisible
+    );
+    const resolvedTarget = targetEntity ? targetEntity.name : inputTarget;
     return {
         command: canonicalCommand,
         target: inputTarget,
-        bestMatch: bestMatch || null
+        bestMatch: { command: canonicalCommand, target: resolvedTarget, response: null, type: 'generic' }
     };
+}
+
+return {
+    command: canonicalCommand,
+    target: inputTarget,
+    bestMatch: bestMatch || null
+};
 }
 
 /**
@@ -76,40 +98,49 @@ function parseCommand(input, parsedCommands, currentArea, checkCondition) {
  * @param {Function} checkCondition - Function to evaluate command conditions.
  * @returns {Object|null} - The best matching command object or null.
  */
-function findBestCommandMatch(canonicalCommand, inputTarget, parsedCommands, currentArea, checkCondition) {
-    const matchingCommands = parsedCommands.filter(c => {
-        const cmdParts = c.command.split(' ');
-        return cmdParts[0] === canonicalCommand;
-    });
-
+function findBestCommandMatch(command, inputTarget, parsedCommands, currentArea, checkCondition) {
+    console.log(`Finding best match for command: "${command}", target: "${inputTarget}"`);
+    
+    const matchingCommands = parsedCommands.filter(c => c.command.startsWith(command));
     if (matchingCommands.length === 0) return null;
-
+    
+    // If no target, return the first valid command with no target requirement
     if (!inputTarget) {
-        return matchingCommands.reduce((best, current) => {
-            const currentPasses = !current.condition || checkCondition(current.condition, currentArea, current.target);
-            if (!currentPasses) return best;
-            return best || current;
-        }, null) || matchingCommands[0];
+        return matchingCommands
+        .filter(c => !c.target && (!c.condition || checkCondition(c.condition, currentArea, c.target)))
+        .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0] || null;
     }
 
     const targetMatches = matchingCommands.filter(c => {
-        const cmdTarget = (c.target || c.item || c.npc || c.secret || '').toLowerCase();
-        if (!cmdTarget) return false;
-        return cmdTarget.includes(inputTarget); // Universal substring matching
+      const cmdTarget = (c.target || '').toLowerCase();
+      return cmdTarget && cmdTarget.includes(inputTarget.toLowerCase());
     });
-
+    console.log('Target matches:', targetMatches.map(m => `${m.command} (target: ${m.target})`));
+    
     if (targetMatches.length === 0) return null;
-
-    return targetMatches.reduce((best, current) => {
-        const currentPasses = !current.condition || checkCondition(current.condition, currentArea, current.target);
-        if (!currentPasses) return best;
-        if (!best) return current;
-        const bestPasses = !best.condition || checkCondition(best.condition, currentArea, best.target);
-        if (!bestPasses) return current;
-        const currentConditionCount = Array.isArray(current.condition) ? current.condition.length : (current.condition ? 1 : 0);
-        const bestConditionCount = Array.isArray(best.condition) ? best.condition.length : (best.condition ? 1 : 0);
-        return currentConditionCount > bestConditionCount ? current : best;
-    }, null);
-}
-
-export { parseCommand };
+    
+    const exactWordMatches = targetMatches.filter(c => {
+      const cmdTarget = c.target.toLowerCase();
+      const words = cmdTarget.split(' ');
+      const isExact = words.includes(inputTarget.toLowerCase());
+      console.log(`Checking exact match for "${cmdTarget}": words=${words}, input="${inputTarget}", exact=${isExact}`);
+      return isExact;
+    });
+    console.log('Exact word matches:', exactWordMatches.map(m => `${m.command} (target: ${m.target})`));
+    
+    const matchesToUse = exactWordMatches.length > 0 ? exactWordMatches : targetMatches;
+    
+    if (matchesToUse.length > 1) {
+      console.log(`Ambiguous command "${command} ${inputTarget}" could match:`, 
+        matchesToUse.map(m => `${m.command} (target: ${m.target})`));
+    }
+    
+    const validMatches = matchesToUse
+      .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+    console.log('Valid matches after conditions:', validMatches.map(m => `${m.command} (target: ${m.target}, priority: ${m.priority || 0})`));
+    
+    return validMatches[0] || null;
+  }
+  
+  export { parseCommand };

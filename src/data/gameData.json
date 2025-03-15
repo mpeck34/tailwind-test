@@ -95,11 +95,11 @@
             },
             "interactions": [
               {
-                "condition": { "type": "npcCondition", "npc": "Old Man", "key": "hasMetPlayer", "value": false },
+                "condition": { "type": "npcState", "npc": "Old Man", "key": "hasMetPlayer", "value": false },
                 "text": "'Welcome to the village.'"
               },
               {
-                "condition": { "type": "npcCondition", "npc": "Old Man", "key": "hasMetPlayer", "value": true },
+                "condition": { "type": "npcState", "npc": "Old Man", "key": "hasMetPlayer", "value": true },
                 "text": "'Good to see you again.'"
               }
             ],
@@ -109,15 +109,18 @@
                 "description": "Talk to the Old Man",
                 "response": "The Old Man tells you stories about the village.",
                 "condition": [ { "type": "areaState", "key": "spokenToOldMan", "value": false } ],
-                "actionTrigger": [ { "action": "setState", "target": "areas.areaId:1", "condition": "spokenToOldMan", "value": true }, { "action": "setState", "target": "areas.areaId:1.npcs.npcId:1", "condition": "hasMetPlayer", "value": true } ],
+                "actionTrigger": [ { "action": "setState", "target": "areas.areaId:1", "condition": "spokenToOldMan", "value": true },
+                                    { "action": "setState", "target": "areas.areaId:1.npcs.npcId:1", "condition": "hasMetPlayer", "value": true } ],
                 "priority": 1
               },
               {
                 "command": "talk",
                 "description": "Talk to the Old Man",
                 "response": "The Old Man gives you a Magic Lens, saying, 'This will help you see hidden truths.'",
-                "condition": [ { "type": "areaState", "key": "spokenToOldMan", "value": true }, { "type": "npcCondition", "npc": "Old Man", "key": "hasMagicLens", "value": true } ],
-                "actionTrigger": [ { "action": "addItemToInventory", "item": "Magic Lens" }, { "action": "setState", "target": "areas.areaId:1.npcs.npcId:1", "condition": "hasMagicLens", "value": false } ],
+                "condition": [ { "type": "areaState", "key": "spokenToOldMan", "value": true },
+                                { "type": "npcState", "npc": "Old Man", "key": "hasMagicLens", "value": true } ],
+                "actionTrigger": [ { "action": "addItemToInventory", "item": "Magic Lens" }, 
+                                    { "action": "setState", "target": "areas.areaId:1.npcs.npcId:1", "condition": "hasMagicLens", "value": false } ],
                 "priority": 3
               },
               {
@@ -154,13 +157,13 @@
             "interactions": [
               {
                 "condition": [
-                  { "type": "itemCondition", "key": "lookedAt", "value": true },
-                  { "type": "itemCondition", "key": "pickedUp", "value": false }
+                  { "type": "itemState", "key": "lookedAt", "value": true },
+                  { "type": "itemState", "key": "pickedUp", "value": false }
                 ],
                 "text": "The coin continues to lie on the ground, glinting at you menacingly... Well, not that menacingly."
               },
               {
-                "condition": { "type": "itemCondition", "key": "isCursed", "value": true },
+                "condition": { "type": "itemState", "key": "isCursed", "value": true },
                 "text": "The coin feels unnaturally cold in your presence."
               }
             ],
@@ -170,7 +173,7 @@
                 "description": "Pick up the Golden Coin.",
                 "response": "You pick up the coin and add it to your inventory.",
                 "condition": [
-                  { "type": "itemCondition", "key": "pickedUp", "value": false }
+                  { "type": "itemState", "key": "pickedUp", "value": false }
                 ],
                 "actionTrigger": [
                   { "action": "setState", "target": "areas.areaId:1.items.itemId:1", "condition": "pickedUp", "value": true },
@@ -183,8 +186,8 @@
                 "description": "Look at the Golden Coin.",
                 "response": "The coin glints in the sunlight, its value unknown.",
                 "condition": [
-                  { "type": "itemCondition", "key": "lookedAt", "value": false },
-                  { "type": "itemCondition", "key": "pickedUp", "value": false }
+                  { "type": "itemState", "key": "lookedAt", "value": false },
+                  { "type": "itemState", "key": "pickedUp", "value": false }
                 ],
                 "actionTrigger": [
                   { "action": "setState", "target": "areas.areaId:1.items.itemId:1", "condition": "lookedAt", "value": true }
@@ -196,8 +199,8 @@
                 "description": "Look closer at the Golden Coin.",
                 "response": "As you look closer at the coin, you can see something engraved upon it.",
                 "condition": [
-                  { "type": "itemCondition", "key": "lookedAt", "value": true },
-                  { "type": "itemCondition", "key": "pickedUp", "value": false }
+                  { "type": "itemState", "key": "lookedAt", "value": true },
+                  { "type": "itemState", "key": "pickedUp", "value": false }
                 ],
                 "priority": 2
               },
@@ -206,9 +209,9 @@
                 "description": "Look at the sticky Golden Coin.",
                 "response": "The coin appears it may be stuck to the ground.",
                 "condition": [
-                  { "type": "itemCondition", "key": "lookedAt", "value": true },
-                  { "type": "itemCondition", "key": "pickedUp", "value": false },
-                  { "type": "itemCondition", "key": "isSticky", "value": true }
+                  { "type": "itemState", "key": "lookedAt", "value": true },
+                  { "type": "itemState", "key": "pickedUp", "value": false },
+                  { "type": "itemState", "key": "isSticky", "value": true }
                 ],
                 "priority": 3
               }
