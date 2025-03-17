@@ -76,12 +76,17 @@ function checkCondition(condition, currentArea, itemName = undefined) {
     return (value ?? false) === condition.value;
   }
   if (condition.type === 'hasItem') {
-    const hasItem = playerData?.inventory?.some(i => i.name === condition.item) ?? false;
-    console.log(`Checking if player has "${condition.item}": ${hasItem}`);
+    const hasItem = playerData?.inventory?.some(i => 
+      i.name === condition.item && i.itemState?.inInventory === true
+    ) ?? false;
+    console.log(`Checking if player has "${condition.item}" in inventory: ${hasItem}`);
     return hasItem;
   }
   if (condition.type === 'doesNotHaveItem') {
-    return !(playerData?.inventory?.some(i => i.name === condition.item)) ?? false;
+    const doesNotHaveItem = !(playerData?.inventory?.some(i => 
+      i.name === condition.item && i.itemState?.inInventory === true)) ?? false;
+    console.log(`Checking if player does not have "${condition.item}" in inventory: ${doesNotHaveItem}`);
+    return doesNotHaveItem;
   }
   if (condition.type === 'playerState') {
     const value = playerData?.playerState?.[condition.key] ?? false;
@@ -115,13 +120,15 @@ function parseItemsNpcs(currentArea) {
 
   // Items
   currentArea.items.forEach(item => {
-    parsedItemsNpcs.push({
-      type: 'item',
-      name: item.name,
-      description: item.description,
-      state: item.itemState,
-      interactions: item.interactions
-    });
+    if (!item.itemState?.pickedUp) { // Only include if not picked up
+      parsedItemsNpcs.push({
+        type: 'item',
+        name: item.name,
+        description: item.description,
+        state: item.itemState,
+        interactions: item.interactions
+      });
+    }
   });
 
   // NPCs
@@ -137,13 +144,15 @@ function parseItemsNpcs(currentArea) {
 
   // Secrets
   currentArea.secrets.forEach(secret => {
-    parsedItemsNpcs.push({
-      type: 'secret',
-      name: secret.name,
-      description: secret.description,
-      state: secret.secretState,
-      interactions: secret.interactions || [] // Secrets might not have interactions, default to empty
-    });
+    if (!secret.secretState?.isInvisible) { // Only include visible secrets
+      parsedItemsNpcs.push({
+        type: 'secret',
+        name: secret.name,
+        description: secret.description,
+        state: secret.secretState,
+        interactions: secret.interactions || [] // Default to empty if secrets have no interactions
+      });
+    }
   });
 
   console.log(parsedItemsNpcs);
@@ -233,6 +242,19 @@ function parseCommands(currentArea) {
       type: 'inventory',
       response: null,
       condition: null
+    });
+  });
+
+  // Add dummyItems as look commands
+  currentArea.dummyItems?.forEach(dummy => {
+    const [target, response] = Object.entries(dummy)[0]; // e.g., ["square", "It's very peaceful"]
+    parsedCommands.push({
+      command: `look ${target}`,
+      target: target,
+      description: `Dummy look at the ${target}.`,
+      response: response,
+      type: 'dummy',
+      priority: 1 // Low priority to avoid overriding items/npcs/secrets
     });
   });
 
@@ -466,17 +488,7 @@ function handlePushCommand(input, parsedCommands, currentArea, target, bestMatch
   const output = [];
 
   if (!target) {
-    output.push("What would you like to push?");
-    const availableTargets = parsedCommands
-      .filter(c => c.command.startsWith('push') && c.target && 
-                   (!c.condition || checkCondition(c.condition, currentArea, c.target)))
-      .map(c => c.target);
-    if (availableTargets.length > 0) {
-      output.push("You can push:");
-      availableTargets.forEach(item => output.push(`- ${item}`));
-    } else {
-      output.push("There’s nothing to push here.");
-    }
+    output.push("I don't know what you want to push.");
     return { needsFurtherInput: false, output };
   }
 
@@ -524,17 +536,7 @@ function handlePullCommand(input, parsedCommands, currentArea, target, bestMatch
   const output = [];
 
   if (!target) {
-    output.push("What would you like to pull?");
-    const availableTargets = parsedCommands
-      .filter(c => c.command.startsWith('pull') && c.target && 
-                   (!c.condition || checkCondition(c.condition, currentArea, c.target)))
-      .map(c => c.target);
-    if (availableTargets.length > 0) {
-      output.push("You can pull:");
-      availableTargets.forEach(item => output.push(`- ${item}`));
-    } else {
-      output.push("There’s nothing to pull here.");
-    }
+    output.push("I don't know what you want to pull.");
     return { needsFurtherInput: false, output };
   }
 
@@ -581,17 +583,7 @@ function handleHitCommand(input, parsedCommands, currentArea, target, bestMatch)
   const output = [];
 
   if (!target) {
-    output.push("What would you like to hit?");
-    const availableTargets = parsedCommands
-      .filter(c => c.command.startsWith('hit') && c.target && 
-                   (!c.condition || checkCondition(c.condition, currentArea, c.target)))
-      .map(c => c.target);
-    if (availableTargets.length > 0) {
-      output.push("You can hit:");
-      availableTargets.forEach(item => output.push(`- ${item}`));
-    } else {
-      output.push("There’s nothing to hit here.");
-    }
+    output.push("I don't know what you want to hit.");
     return { needsFurtherInput: false, output };
   }
 
@@ -638,17 +630,7 @@ function handleUseCommand(input, parsedCommands, currentArea, target, bestMatch)
   const output = [];
 
   if (!target) {
-    output.push("What would you like to use?");
-    const availableTargets = parsedCommands
-      .filter(c => c.command.startsWith('use') && c.target && 
-                   (!c.condition || checkCondition(c.condition, currentArea, c.target)))
-      .map(c => c.target);
-    if (availableTargets.length > 0) {
-      output.push("You can use:");
-      availableTargets.forEach(item => output.push(`- ${item}`));
-    } else {
-      output.push("There’s nothing to use here.");
-    }
+    output.push("I don't know what you want to use.");
     return { needsFurtherInput: false, output };
   }
 
@@ -697,14 +679,7 @@ function handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatc
   const output = [];
 
   if (!target) {
-    output.push("What would you like to place?");
-    const invItems = playerData.inventory.filter(item => item.itemState.inInventory).map(item => item.name);
-    if (invItems.length > 0) {
-      output.push("You can place from your inventory:");
-      invItems.forEach(item => output.push(`- ${item}`));
-    } else {
-      output.push("You have nothing to place in your inventory.");
-    }
+    output.push("I don't know what you want to place.");
     return { needsFurtherInput: false, output };
   }
 
@@ -807,26 +782,27 @@ function handleAction(command, currentArea) {
       if (subPath.includes('.npcs.npcId:')) {
         const [areaId, npcPart] = subPath.split('.npcs.npcId:');
         const npcId = parseInt(npcPart);
-        const area = areaData.find(a => a.areaId === parseInt(areaId));
+        const area = areaData.find(a => a.areaId === (areaId));
         const npc = area.npcs.find(n => n.npcId === npcId);
         npc.npcState[trigger.condition] = trigger.value;
         console.log(`Set ${trigger.condition} = ${trigger.value} for NPC ${npc.name}`);
       } else if (subPath.includes('.items.itemId:')) {
         const [areaId, itemPart] = subPath.split('.items.itemId:');
+        console.log(`Look command ${areaId}`)
         const itemId = parseInt(itemPart);
-        const area = areaData.find(a => a.areaId === parseInt(areaId));
+        const area = areaData.find(a => a.areaId === (areaId));
         const item = area.items.find(i => i.itemId === itemId);
         item.itemState[trigger.condition] = trigger.value;
         console.log(`Set ${trigger.condition} = ${trigger.value} for item ${item.name}`);
       } else if (subPath.includes('.secrets.secretId:')) {
         const [areaId, secretPart] = subPath.split('.secrets.secretId:');
         const secretId = parseInt(secretPart);
-        const area = areaData.find(a => a.areaId === parseInt(areaId));
+        const area = areaData.find(a => a.areaId === (areaId));
         const secret = area.secrets.find(s => s.secretId === secretId);
         secret.secretState[trigger.condition] = trigger.value;
         console.log(`Set ${trigger.condition} = ${trigger.value} for secret ${secret.name}`);
       } else {
-        const area = areaData.find(a => a.areaId === parseInt(subPath));
+        const area = areaData.find(a => a.areaId === (subPath));
         area.areaState[trigger.condition] = trigger.value;
         console.log(`Set ${trigger.condition} = ${trigger.value} for area ${area.name}`);
       }

@@ -2,14 +2,15 @@
   "gameSettings": {
     "difficulty": "normal",
     "language": "en",
-    "sound": true
+    "sound": true,
+    "font size": 10
   },
   "playerData": {
     "playerName": "Player1",
     "level": 5,
     "score": 1000,
     "hasSavedGame": true,
-    "currentArea": 1,
+    "currentArea": "MM5",
     "inventory": [
       {
         "name": "Sticky Sap",
@@ -41,8 +42,14 @@
         "name": "Magic Lens",
         "itemState": {
           "inInventory" : false
+        }
+      },
+      {
+        "name": "Wooden Staff",
+        "itemState": {
+          "inInventory": false
+        }
       }
-    }
     ],
     "playerState": {
       "isCursed": false
@@ -61,9 +68,9 @@
     {
       "areaId": "MM5",
       "name": "Village Square",
-      "description": "A peaceful square in the village, with shops and a fountain.",
+      "description": "A peaceful square in the village, with shops to the west. A fountain bubbles in the center. You also see a path leading north and one leading east.",
       "localArea": "village",
-      "realm": "Earth",
+      "realm": "testingArea",
       "areaState": {
         "hasBeenVisited": false,
         "isLit": true,
@@ -88,7 +95,11 @@
         "dummyItems":[
           {"square": "It's very peaceful"},
           {"shops": "There's many wares for sale. If only you had a coin."},
-          {"village": "It's hard to say how big the village is, but it's not very busy."}
+          {"village": "It's hard to say how big the village is, but it's not very busy."},
+          {"water": "Yes, the fountain has water!"},
+          {"bubbles": "You help the fountain bubble by blowing some bubbles of your own."},
+          {"path": "There's a few paths here."},
+          {"villagers": "There's a few people out and about in the town."}
         ],
         "npcs": [
           {
@@ -119,8 +130,8 @@
                 "response": "The Old Man tells you stories about the village and hands you some Sticky Sap.",
                 "condition": [ { "type": "areaState", "key": "spokenToOldMan", "value": false } ],
                 "actionTrigger": [
-                  { "action": "setState", "target": "areas.areaId:1", "condition": "spokenToOldMan", "value": true },
-                  { "action": "setState", "target": "areas.areaId:1.npcs.npcId:1", "condition": "hasMetPlayer", "value": true },
+                  { "action": "setState", "target": "areas.areaId:MM5", "condition": "spokenToOldMan", "value": true },
+                  { "action": "setState", "target": "areas.areaId:MM5.npcs.npcId:1", "condition": "hasMetPlayer", "value": true },
                   { "action": "addItemToInventory", "item": "Sticky Sap" }
                 ],
                 "priority": 1
@@ -132,7 +143,7 @@
                 "condition": [ { "type": "areaState", "key": "spokenToOldMan", "value": true },
                                 { "type": "npcState", "npc": "Old Man", "key": "hasMagicLens", "value": true } ],
                 "actionTrigger": [ { "action": "addItemToInventory", "item": "Magic Lens" }, 
-                                    { "action": "setState", "target": "areas.areaId:1.npcs.npcId:1", "condition": "hasMagicLens", "value": false } ],
+                                    { "action": "setState", "target": "areas.areaId:MM5.npcs.npcId:1", "condition": "hasMagicLens", "value": false } ],
                 "priority": 3
               },
               {
@@ -192,9 +203,9 @@
                   { "type": "itemState", "key": "pickedUp", "value": false }
                 ],
                 "actionTrigger": [
-                  { "action": "setState", "target": "areas.areaId:1.items.itemId:1", "condition": "pickedUp", "value": true },
-                  { "action": "removeItem", "target": "areas.areaId:1.items.itemId:1" },
-                  { "action": "setState", "target": "areas.areaId:1", "condition": "villagersAngry", "value": true }
+                  { "action": "setState", "target": "areas.areaId:MM5.items.itemId:1", "condition": "pickedUp", "value": true },
+                  { "action": "addItemToInventory", "item": "Golden Coin" },
+                  { "action": "setState", "target": "areas.areaId:MM5", "condition": "villagersAngry", "value": true }
                 ]
               },
               {
@@ -206,7 +217,7 @@
                   { "type": "itemState", "key": "pickedUp", "value": false }
                 ],
                 "actionTrigger": [
-                  { "action": "setState", "target": "areas.areaId:1.items.itemId:1", "condition": "lookedAt", "value": true }
+                  { "action": "setState", "target": "areas.areaId:MM5.items.itemId:1", "condition": "lookedAt", "value": true }
                 ],
                 "priority": 1
               },
@@ -238,10 +249,10 @@
                 "response": "You smear the Sticky Sap onto the Golden Coin, making it sticky.",
                 "condition": [
                   { "type": "itemInInventory", "item": "Sticky Sap" },
-                  { "type": "itemState", "area": "areas.areaId:1", "item": "Golden Coin", "key": "pickedUp", "value": false }
+                  { "type": "itemState", "area": "areas.areaId:MM5", "item": "Golden Coin", "key": "pickedUp", "value": false }
                 ],
                 "actionTrigger": [
-                  { "action": "setState", "target": "areas.areaId:1.items.itemId:1", "condition": "isSticky", "value": true },
+                  { "action": "setState", "target": "areas.areaId:MM5.items.itemId:1", "condition": "isSticky", "value": true },
                   { "action": "removeItemFromInventory", "item": "Sticky Sap" }
                 ],
                 "priority": 1
@@ -255,7 +266,7 @@
                   { "type": "itemInInventory", "item": "Golden Coin" }
                 ],
                 "actionTrigger": [
-                  { "action": "setState", "target": "areas.areaId:1.items.itemId:1", "condition": "pickedUp", "value": false },
+                  { "action": "setState", "target": "areas.areaId:MM5.items.itemId:1", "condition": "pickedUp", "value": false },
                   { "action": "removeItemFromInventory", "item": "Golden Coin" }
                 ],
                 "priority": 1
@@ -291,19 +302,19 @@
                 "priority": 1
               },
               {
-                "command": "press button",
-                "target": "fountain",
+                "command": "push button",
+                "target": "button",
                 "description": "Press the button on the fountain.",
                 "response": "The fountain moves aside, revealing a hidden passage.",
                 "condition": [ { "type": "hasItem", "item": "Magic Lens" },
                                 { "type": "areaState", "key": "revealedHiddenPassage", "value": false } ],
-                "actionTrigger": [ { "action": "setState", "target": "areas.areaId:1", "condition": "revealedHiddenPassage", "value": true },
-                                  { "action": "setState", "target": "areas.areaId:1.secrets.secretId:1", "condition": "isInvisible", "value": false } ],
+                "actionTrigger": [ { "action": "setState", "target": "areas.areaId:MM5", "condition": "revealedHiddenPassage", "value": true },
+                                  { "action": "setState", "target": "areas.areaId:MM5.secrets.secretId:1", "condition": "isInvisible", "value": false } ],
                 "priority": 2
               },
               {
-                "command": "press button",
-                "target": "fountain",
+                "command": "push button",
+                "target": "button",
                 "description": "Try to press a button without seeing it.",
                 "response": "You don't see any button to press.",
                 "condition": { "type": "doesNotHaveItem", "item": "Magic Lens" },
@@ -337,14 +348,14 @@
           }
       ],
       "exits": {
-        "north": "MN5",
-        "south": null,
+        "north": "impassable",
+        "south": "ML5",
         "east": "NM5",
         "west": "LM5",
         "up": "MM6",
         "down": "MM4",
         "teleport": null,
-        "passage": "MNS5",
+        "passage": "invisible",
         "commands": [
           {
             "command": "go north",
@@ -367,19 +378,23 @@
           {
             "command": "go west",
             "description": "Move to the west exit.",
-            "response": "You move toward the western path.",
-            "condition": null
+            "response": "You head towards the shops.",
+            "condition": { "type": "hasItem", "item": "Golden Coin"},
+            "elseResponse": "You don't see the sense in shopping without money.",
+            "actionTrigger": [
+              { "action": "setPlayerArea", "target": "playerData", "areaId": "LM5"  }
+            ]
           },
           {
             "command": "go up",
             "description": "Climb up to a higher level.",
-            "response": "There's nothing to climb here.",
+            "response": "You magically climb up.",
             "condition": null
           },
           {
             "command": "go down",
             "description": "Descend to a lower level.",
-            "response": "There's no way down from here.",
+            "response": "You magically climb down.",
             "condition": null
           },
           {
@@ -394,18 +409,18 @@
             "response": "You slip through the passage to the forest.",
             "condition": { "type": "areaState", "key": "revealedHiddenPassage", "value": true },
             "actionTrigger": [
-              { "action": "setPlayerArea", "target": "playerData", "areaId": 2 }
+              { "action": "setPlayerArea", "target": "playerData", "areaId": "MN5"  }
             ]
           }
         ]
       }
     },
     {
-      "areaId": "ML5",
+      "areaId": "MN5",
       "name": "Dark Forest",
       "description": "A dense and dark forest with twisted trees and eerie sounds.",
       "localArea": "forest",
-      "realm": "Earth",
+      "realm": "testingArea",
       "areaState": {
         "hasBeenVisited": false,
         "placedStaffInStump": false,
@@ -420,6 +435,11 @@
           { "condition": { "type": "areaState", "key": "isOvergrown", "value": true }, "text": "Vines and roots tangle underfoot, slowing your steps." }
         ]
       },
+      "dummyItems": [
+        { "trees": "The trees seem to have grown all around each other. Sometimes you can't even fit in between"},
+        { "vines": "Vines grow all over the ground and up the tree trunks."}
+      ],
+
       "npcs": [
         {
           "npcId": 2,
@@ -442,7 +462,7 @@
               "response": "The spirit warns you of the dangers of straying from the path.",
               "condition": null,
               "actionTrigger": [
-                { "action": "setState", "target": "areas.areaId:2.npcs.npcId:2", "condition": "hasMetPlayer", "value": true }
+                { "action": "setState", "target": "areas.areaId:MN5.npcs.npcId:2", "condition": "hasMetPlayer", "value": true }
               ],
               "priority": 1
             },
@@ -456,7 +476,7 @@
               ],
               "actionTrigger": [
                 { "action": "addItemToInventory", "item": "Glowing Mushroom" },
-                { "action": "setState", "target": "areas.areaId:2.npcs.npcId:2", "condition": "hasGivenMushroom", "value": true }
+                { "action": "setState", "target": "areas.areaId:MN5.npcs.npcId:2", "condition": "hasGivenMushroom", "value": true }
               ],
               "priority": 2
             },
@@ -473,9 +493,10 @@
         {
           "itemId": 2,
           "name": "Wooden Staff",
-          "description": "A gnarled staff carved from forest wood.",
+          "description": "You see a gnarled staff carved from forest wood.",
           "itemState": {
             "isHidden": false,
+            "isStuck": true,
             "pickedUp": false
           },
           "interactions": [
@@ -488,16 +509,39 @@
           ],
           "commands": [
             {
+              "command": "pull",
+              "description": "Pull on the staff to free it before taking.",
+              "response": "You pull on the staff free from the undergrowth.",
+              "condition": [
+                { "type": "itemState", "key": "pickedUp", "value": false },
+                { "type": "itemState", "key": "isStuck", "value": true }
+              ],
+              "actionTrigger": [ { "action": "setState", "target": "areas.areaId:MN5.items.itemId:2", "condition": "isStuck", "value": false }
+              ]
+            },
+            {
+              "command": "take",
+              "description": "Attempt to take before pulling to free",
+              "response": "The staff seems a bit stuck in the undergrowth.",
+              "condition": [
+                { "type": "itemState", "key": "pickedUp", "value": false },
+                { "type": "itemState", "key": "isStuck", "value": true }
+              ],
+              "priority": 2
+            },            
+            {
               "command": "take",
               "description": "Pick up the Wooden Staff.",
-              "response": "You pull the staff from the undergrowth and add it to your inventory.",
+              "response": "You pick up the staff and add it to your inventory.",
               "condition": [
-                { "type": "itemState", "key": "pickedUp", "value": false }
+                { "type": "itemState", "key": "pickedUp", "value": false },
+                { "type": "itemState", "key": "isStuck", "value": false}
               ],
               "actionTrigger": [
-                { "action": "setState", "target": "areas.areaId:2.items.itemId:2", "condition": "pickedUp", "value": true },
-                { "action": "removeItem", "target": "areas.areaId:2.items.itemId:2" }
-              ]
+                { "action": "setState", "target": "areas.areaId:MN5.items.itemId:2", "condition": "pickedUp", "value": true },
+                { "action": "addItemToInventory", "item": "Wooden Staff"}
+              ],
+              "priority": 1
             },
             {
               "command": "look",
@@ -549,9 +593,9 @@
                 { "type": "areaState", "key": "placedStaffInStump", "value": false }
               ],
               "actionTrigger": [
-                { "action": "setState", "target": "areas.areaId:2", "condition": "placedStaffInStump", "value": true },
-                { "action": "setState", "target": "areas.areaId:2.secrets.secretId:2", "condition": "isInvisible", "value": false },
-                { "action": "setState", "target": "areas.areaId:2.secrets.secretId:2", "condition": "revealedPortal", "value": true }
+                { "action": "setState", "target": "areas.areaId:MN5", "condition": "placedStaffInStump", "value": true },
+                { "action": "setState", "target": "areas.areaId:MN5.secrets.secretId:2", "condition": "isInvisible", "value": false },
+                { "action": "setState", "target": "areas.areaId:MN5.secrets.secretId:2", "condition": "revealedPortal", "value": true }
               ]
             }
           ]
@@ -564,7 +608,7 @@
         "west": null,
         "up": null,
         "down": null,
-        "teleport": 3,
+        "teleport": "NM5",
         "passage": null,
         "commands": [
           {
@@ -609,7 +653,7 @@
             "response": "You slip back through the passage to the village square.",
             "condition": null,
             "actionTrigger": [
-              { "action": "setPlayerArea", "target": "playerData", "areaId": 1 }
+              { "action": "setPlayerArea", "target": "playerData", "areaId": "MM5" }
             ]
           },
           {
@@ -618,7 +662,7 @@
             "response": "You step through the portal and arrive in a new place.",
             "condition": { "type": "areaState", "key": "placedStaffInStump", "value": true },
             "actionTrigger": [
-              { "action": "setPlayerArea", "target": "playerData", "areaId": 3 }
+              { "action": "setPlayerArea", "target": "playerData", "areaId": "NM5" }
             ]
           }
         ]

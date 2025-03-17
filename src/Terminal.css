@@ -102,10 +102,16 @@
     width: 100%;
     padding-right: 20px; /* Ensure there's space for the scrollbar */
     margin-bottom: 20px; /* Add space between history and input */
+    max-height: 80vh;
   }
 
 .terminal-line {
     margin: 5px 0;
+    line-height: 1.25;
+}
+
+.command-line {
+  margin-top: 1.5em;
 }
 
 .terminal-input {

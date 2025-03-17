@@ -18,7 +18,7 @@ function Terminal({ onQuit }) {
     if (!hasInitialized.current) {
       console.log('Initializing game...');
       //Initial display first area
-      setHistory(displayArea(1));
+      setHistory(displayArea("MM5"));
       hasInitialized.current = true;
     }
   }, []);
@@ -108,10 +108,13 @@ useEffect(() => {
           onClick={() => inputRef.current.focus()}
         >
           <div className="terminal-history">
-            {history.map((line, index) => (
+          {history.map((line, index) => {
+            const isCommand = line.startsWith('> ');
+            return (
               <div
                 key={index}
                 className={`terminal-line ${
+                  isCommand ? 'command-line' : ''} ${
                   index === flickerIndex
                     ? 'animate-flicker'
                     : index === glitchIndex
@@ -123,7 +126,8 @@ useEffect(() => {
               >
                 {line}
               </div>
-            ))}
+            );
+          })}
             <div ref={historyEndRef} />
           </div>
   

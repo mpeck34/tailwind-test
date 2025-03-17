@@ -10,7 +10,7 @@ const commandDictionary = {
     "inventory": ["inv", "invent", "items", "gear", "stuff", "in", "i", "bag", "list", "itm"],
     "take": ["get", "grab", "pickup", "snag", "collect", "tak", "tke", "t", "grb", "pick"],
     "go": ["move", "travel", "head", "walk", "run", "g", "mv", "go to", "wlk"],
-    "push": ["shove", "nudge", "psh", "pu", "shv"],
+    "push": ["shove", "nudge", "psh", "pu", "shv", "press", "pres"],
     "pull": ["tug", "yank", "pul", "pl", "yg"],
     "hit": ["hit", "tap", "smash", "whack", "bonk"],
     "use": ["utilize", "activate", "us", "u", "act", "employ"],
@@ -123,42 +123,46 @@ function findBestCommandMatch(command, inputTarget, parsedCommands, currentArea,
     if (matchingCommands.length === 0) return null;
     
     if (!inputTarget) {
-        return matchingCommands
-            .filter(c => !c.target && (!c.condition || checkCondition(c.condition, currentArea, c.target)))
-            .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0] || null;
+      return matchingCommands
+        .filter(c => !c.target && (!c.condition || checkCondition(c.condition, currentArea, c.target)))
+        .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0] || null;
     }
-
+  
     const targetMatches = matchingCommands.filter(c => {
-        const cmdTarget = (c.target || '').toLowerCase();
-        const words = cmdTarget.split(' ');
-        return words.includes(inputTarget.toLowerCase()) || cmdTarget === inputTarget.toLowerCase();
+      if (!c.target) return false;
+      const cmdTarget = c.target.toLowerCase();
+      
+      // Exact full command match (e.g., "push button")
+      if (c.command === `${command} ${inputTarget}`.toLowerCase()) return true;
+      
+      // Exact word match in target (e.g., "old" in "Old Man")
+      const targetWords = cmdTarget.split(' ');
+      if (targetWords.includes(inputTarget.toLowerCase())) return true;
+      
+      // Partial match: inputTarget is a substring of cmdTarget (e.g., "fount" in "fountain")
+      return cmdTarget.includes(inputTarget.toLowerCase());
     });
     console.log('Target matches:', targetMatches.map(m => `${m.command} (target: ${m.target})`));
     
     if (targetMatches.length === 0) return null;
     
-    const exactWordMatches = targetMatches.filter(c => {
-        const cmdTarget = c.target.toLowerCase();
-        const words = cmdTarget.split(' ');
-        const isExact = words.includes(inputTarget.toLowerCase());
-        console.log(`Checking exact match for "${cmdTarget}": words=${words}, input="${inputTarget}", exact=${isExact}`);
-        return isExact;
-    });
-    console.log('Exact word matches:', exactWordMatches.map(m => `${m.command} (target: ${m.target})`));
-    
-    const matchesToUse = exactWordMatches.length > 0 ? exactWordMatches : targetMatches;
-    
-    if (matchesToUse.length > 1) {
-        console.log(`Ambiguous command "${command} ${inputTarget}" could match:`, 
-            matchesToUse.map(m => `${m.command} (target: ${m.target})`));
-    }
+    // Prioritize: 1. Exact command, 2. Exact word, 3. Partial match
+    const exactCommandMatches = targetMatches.filter(c => 
+      c.command === `${command} ${inputTarget}`.toLowerCase()
+    );
+    const exactWordMatches = targetMatches.filter(c => 
+      c.target.toLowerCase().split(' ').includes(inputTarget.toLowerCase())
+    );
+    const matchesToUse = exactCommandMatches.length > 0 
+      ? exactCommandMatches 
+      : (exactWordMatches.length > 0 ? exactWordMatches : targetMatches);
     
     const validMatches = matchesToUse
-        .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
-        .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+      .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0));
     console.log('Valid matches after conditions:', validMatches.map(m => `${m.command} (target: ${m.target}, priority: ${m.priority || 0})`));
     
     return validMatches[0] || null;
-}
+  }
 
 export { parseCommand };
