@@ -48,6 +48,10 @@
           "isCursed": [
             "The coin feels unnaturally cold in your presence.",
             "A dark energy seems to seep from it."
+          ],
+          "isSticky": [
+            "This'll clog a vending machine.",
+            "It sticks to your hand."
           ]
         }
       },

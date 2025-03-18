@@ -98,13 +98,12 @@ function checkCondition(condition, currentArea, itemName = undefined) {
     return value === condition.value;
   }
   if (condition.type === 'itemState') {
-    const itemInInventory = playerData.inventory.find(i => i.name === itemName);
-    const itemInArea = currentArea?.items?.find(i => i.name === itemName);
-    // Prioritize inventory state if item is in inventory, otherwise check area
-    const value = itemInInventory?.itemState?.inInventory
-      ? itemInInventory.itemState[condition.key] ?? false
-      : itemInArea?.itemState?.[condition.key] ?? false;
+    const item = playerData.inventory.find(i => i.name === itemName);
+    const value = item?.itemState?.[condition.key] ?? false;
     console.log(`Checking itemState for ${itemName}: ${condition.key}=${condition.value}, actual=${value}`);
+    if (!item) {
+      console.warn(`Item ${itemName} not found in playerData.inventory for condition check`);
+    }
     return value === condition.value;
   }
   if (condition.type === 'secretState') {
@@ -752,18 +751,26 @@ function handleInventoryItem(input) {
     if (invDescription) {
       output.push(invDescription.description);
 
-      if (invDescription.lookBlurbs && invDescription.lookBlurbs.length) {
-        const randomBlurb = invDescription.lookBlurbs[Math.floor(Math.random() * invDescription.lookBlurbs.length)];
-        output.push(randomBlurb);
-      }
-
+      // Check for applicable extraLookBlurbs first
+      let hasExtraBlurb = false;
       if (invItem.itemState) {
         for (const [condition, isTrue] of Object.entries(invItem.itemState)) {
           if (isTrue && invDescription.extraLookBlurbs?.[condition]) {
-            const randomConditionBlurb = invDescription.extraLookBlurbs[condition][Math.floor(Math.random() * invDescription.extraLookBlurbs[condition].length)];
+            const randomConditionBlurb = invDescription.extraLookBlurbs[condition][
+              Math.floor(Math.random() * invDescription.extraLookBlurbs[condition].length)
+            ];
             output.push(randomConditionBlurb);
+            hasExtraBlurb = true; // Flag that an extra blurb was added
           }
         }
+      }
+
+      // Only add lookBlurbs if no extraLookBlurbs were applied
+      if (!hasExtraBlurb && invDescription.lookBlurbs && invDescription.lookBlurbs.length) {
+        const randomBlurb = invDescription.lookBlurbs[
+          Math.floor(Math.random() * invDescription.lookBlurbs.length)
+        ];
+        output.push(randomBlurb);
       }
     } else {
       output.push(`You don't see anything special about the ${target}.`);
@@ -782,7 +789,6 @@ function handleAction(command, currentArea) {
     if (trigger.action === 'setState') {
       const targetParts = trigger.target.split('.');
       if (targetParts[0] === 'playerData' && targetParts[1] === 'inventory' && targetParts[2].startsWith('name:')) {
-        // Handle playerData.inventory.name:ITEM_NAME
         const itemName = targetParts[2].split(':')[1];
         const item = playerData.inventory.find(i => i.name === itemName);
         if (item) {
@@ -800,25 +806,18 @@ function handleAction(command, currentArea) {
           const npc = area.npcs.find(n => n.npcId === npcId);
           npc.npcState[trigger.condition] = trigger.value;
           console.log(`Set ${trigger.condition} = ${trigger.value} for NPC ${npc.name}`);
-      } else if (subPath.includes('.items.itemId:')) {
-        const [areaId, itemPart] = subPath.split('.items.itemId:');
-        console.log(`Look command ${areaId}`)
-        const itemId = parseInt(itemPart);
-        const area = areaData.find(a => a.areaId === (areaId));
-        const item = area.items.find(i => i.itemId === itemId);
-        item.itemState[trigger.condition] = trigger.value;
-        console.log(`Set ${trigger.condition} = ${trigger.value} for item ${item.name}`);
-      } else if (subPath.includes('.secrets.secretId:')) {
-        const [areaId, secretPart] = subPath.split('.secrets.secretId:');
-        const secretId = parseInt(secretPart);
-        const area = areaData.find(a => a.areaId === (areaId));
-        const secret = area.secrets.find(s => s.secretId === secretId);
-        secret.secretState[trigger.condition] = trigger.value;
-        console.log(`Set ${trigger.condition} = ${trigger.value} for secret ${secret.name}`);
-      } else {
-        const area = areaData.find(a => a.areaId === (subPath));
-        area.areaState[trigger.condition] = trigger.value;
-        console.log(`Set ${trigger.condition} = ${trigger.value} for area ${area.name}`);
+        } else if (subPath.includes('.secrets.secretId:')) {
+          const [areaId, secretPart] = subPath.split('.secrets.secretId:');
+          const secretId = parseInt(secretPart);
+          const area = areaData.find(a => a.areaId === areaId);
+          const secret = area.secrets.find(s => s.secretId === secretId);
+          secret.secretState[trigger.condition] = trigger.value;
+          console.log(`Set ${trigger.condition} = ${trigger.value} for secret ${secret.name}`);
+        } else {
+          const area = areaData.find(a => a.areaId === subPath);
+          area.areaState[trigger.condition] = trigger.value;
+          console.log(`Set ${trigger.condition} = ${trigger.value} for area ${area.name}`);
+        }
       }
     } else if (trigger.action === 'addItemToInventory') {
       const item = playerData.inventory.find(i => i.name.toLowerCase() === trigger.item.toLowerCase());
