@@ -315,8 +315,8 @@
               {
                 "command": "push button",
                 "target": "button",
-                "description": "Try to press a button without seeing it.",
-                "response": "You don't see any button to press.",
+                "description": "Try to push a button without seeing it.",
+                "response": "You don't see any button to push.",
                 "condition": { "type": "doesNotHaveItem", "item": "Magic Lens" },
                 "priority": 1
               },
