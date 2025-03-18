@@ -98,11 +98,13 @@ function checkCondition(condition, currentArea, itemName = undefined) {
     return value === condition.value;
   }
   if (condition.type === 'itemState') {
-    const item = currentArea?.items?.find(i => i.name === itemName);
-    console.log(`Checking itemState for ${itemName}: ${condition.key}=${condition.value}, actual=${item?.itemState?.[condition.key]}`);
-    console.log(`Item ${itemName} itemState:`, item?.itemState);
-    const value = item?.itemState?.[condition.key] ?? false;
-    console.log(`Checking ${condition.key}: ${value} for ${itemName}, Item: ${JSON.stringify(item?.itemState)}`);
+    const itemInInventory = playerData.inventory.find(i => i.name === itemName);
+    const itemInArea = currentArea?.items?.find(i => i.name === itemName);
+    // Prioritize inventory state if item is in inventory, otherwise check area
+    const value = itemInInventory?.itemState?.inInventory
+      ? itemInInventory.itemState[condition.key] ?? false
+      : itemInArea?.itemState?.[condition.key] ?? false;
+    console.log(`Checking itemState for ${itemName}: ${condition.key}=${condition.value}, actual=${value}`);
     return value === condition.value;
   }
   if (condition.type === 'secretState') {
@@ -778,14 +780,26 @@ function handleAction(command, currentArea) {
   if (!command.actionTrigger) return;
   command.actionTrigger.forEach(trigger => {
     if (trigger.action === 'setState') {
-      const [path, subPath] = trigger.target.split('.areaId:');
-      if (subPath.includes('.npcs.npcId:')) {
-        const [areaId, npcPart] = subPath.split('.npcs.npcId:');
-        const npcId = parseInt(npcPart);
-        const area = areaData.find(a => a.areaId === (areaId));
-        const npc = area.npcs.find(n => n.npcId === npcId);
-        npc.npcState[trigger.condition] = trigger.value;
-        console.log(`Set ${trigger.condition} = ${trigger.value} for NPC ${npc.name}`);
+      const targetParts = trigger.target.split('.');
+      if (targetParts[0] === 'playerData' && targetParts[1] === 'inventory' && targetParts[2].startsWith('name:')) {
+        // Handle playerData.inventory.name:ITEM_NAME
+        const itemName = targetParts[2].split(':')[1];
+        const item = playerData.inventory.find(i => i.name === itemName);
+        if (item) {
+          item.itemState[trigger.condition] = trigger.value;
+          console.log(`Set ${trigger.condition} = ${trigger.value} for inventory item ${item.name}`);
+        } else {
+          console.warn(`Item ${itemName} not found in playerData.inventory`);
+        }
+      } else if (targetParts[0] === 'areas' && targetParts[1].startsWith('areaId:')) {
+        const [path, subPath] = trigger.target.split('.areaId:');
+        if (subPath.includes('.npcs.npcId:')) {
+          const [areaId, npcPart] = subPath.split('.npcs.npcId:');
+          const npcId = parseInt(npcPart);
+          const area = areaData.find(a => a.areaId === areaId);
+          const npc = area.npcs.find(n => n.npcId === npcId);
+          npc.npcState[trigger.condition] = trigger.value;
+          console.log(`Set ${trigger.condition} = ${trigger.value} for NPC ${npc.name}`);
       } else if (subPath.includes('.items.itemId:')) {
         const [areaId, itemPart] = subPath.split('.items.itemId:');
         console.log(`Look command ${areaId}`)

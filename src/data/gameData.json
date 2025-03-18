@@ -35,7 +35,10 @@
           "inInventory" : false,
           "isSticky": false,
           "isCursed": false,
-          "canBeUsedInTrade": true
+          "canBeUsedInTrade": true,
+          "isHidden": false,
+          "pickedUp": false,
+          "lookedAt": false
         }
       },
       {
@@ -47,7 +50,9 @@
       {
         "name": "Wooden Staff",
         "itemState": {
-          "inInventory": false
+          "inInventory": false,
+          "isStuck": true,
+          "pickedUp": false
         }
       }
     ],
@@ -183,7 +188,7 @@
                   { "type": "itemState", "key": "lookedAt", "value": true },
                   { "type": "itemState", "key": "pickedUp", "value": false }
                 ],
-                "text": "The coin continues to lie on the ground, glinting at you menacingly... Well, not that menacingly."
+                "text": "It continues to lie on the ground, glinting at you menacingly... Well, not that menacingly."
               },
               {
                 "condition": { "type": "itemState", "key": "isCursed", "value": true },
@@ -203,7 +208,7 @@
                   { "type": "itemState", "key": "pickedUp", "value": false }
                 ],
                 "actionTrigger": [
-                  { "action": "setState", "target": "areas.areaId:MM5.items.itemId:1", "condition": "pickedUp", "value": true },
+                  { "action": "setState", "target": "playerData.inventory.name:Golden Coin", "condition": "pickedUp", "value": true },
                   { "action": "addItemToInventory", "item": "Golden Coin" },
                   { "action": "setState", "target": "areas.areaId:MM5", "condition": "villagersAngry", "value": true }
                 ]
@@ -217,7 +222,7 @@
                   { "type": "itemState", "key": "pickedUp", "value": false }
                 ],
                 "actionTrigger": [
-                  { "action": "setState", "target": "areas.areaId:MM5.items.itemId:1", "condition": "lookedAt", "value": true }
+                  { "action": "setState", "target": "playerData.inventory.name:Golden Coin", "condition": "lookedAt", "value": true }
                 ],
                 "priority": 1
               },
@@ -248,11 +253,11 @@
                 "description": "Place the Sticky Sap on the Golden Coin.",
                 "response": "You smear the Sticky Sap onto the Golden Coin, making it sticky.",
                 "condition": [
-                  { "type": "itemInInventory", "item": "Sticky Sap" },
+                  { "type": "hasItem", "item": "Sticky Sap" },
                   { "type": "itemState", "area": "areas.areaId:MM5", "item": "Golden Coin", "key": "pickedUp", "value": false }
                 ],
                 "actionTrigger": [
-                  { "action": "setState", "target": "areas.areaId:MM5.items.itemId:1", "condition": "isSticky", "value": true },
+                  { "action": "setState", "target": "playerData.inventory.name:Golden Coin", "condition": "isSticky", "value": true },
                   { "action": "removeItemFromInventory", "item": "Sticky Sap" }
                 ],
                 "priority": 1
@@ -263,10 +268,10 @@
                 "description": "Place the Golden Coin back in the square.",
                 "response": "You place the Golden Coin back in the square.",
                 "condition": [
-                  { "type": "itemInInventory", "item": "Golden Coin" }
+                  { "type": "hasItem", "item": "Golden Coin" }
                 ],
                 "actionTrigger": [
-                  { "action": "setState", "target": "areas.areaId:MM5.items.itemId:1", "condition": "pickedUp", "value": false },
+                  { "action": "setState", "target": "playerData.inventory.name:Golden Coin", "condition": "pickedUp", "value": false },
                   { "action": "removeItemFromInventory", "item": "Golden Coin" }
                 ],
                 "priority": 1
@@ -388,13 +393,13 @@
           {
             "command": "go up",
             "description": "Climb up to a higher level.",
-            "response": "You magically climb up.",
+            "response": "You magically climb up, maybe.",
             "condition": null
           },
           {
             "command": "go down",
             "description": "Descend to a lower level.",
-            "response": "You magically climb down.",
+            "response": "You magically climb down, maybe.",
             "condition": null
           },
           {
@@ -516,7 +521,7 @@
                 { "type": "itemState", "key": "pickedUp", "value": false },
                 { "type": "itemState", "key": "isStuck", "value": true }
               ],
-              "actionTrigger": [ { "action": "setState", "target": "areas.areaId:MN5.items.itemId:2", "condition": "isStuck", "value": false }
+              "actionTrigger": [ { "action": "setState", "target": "playerData.inventory.name:Wooden Staff", "condition": "isStuck", "value": false }
               ]
             },
             {
@@ -538,7 +543,7 @@
                 { "type": "itemState", "key": "isStuck", "value": false}
               ],
               "actionTrigger": [
-                { "action": "setState", "target": "areas.areaId:MN5.items.itemId:2", "condition": "pickedUp", "value": true },
+                { "action": "setState", "target": "playerData.inventory.name:Wooden Staff", "condition": "pickedUp", "value": true },
                 { "action": "addItemToInventory", "item": "Wooden Staff"}
               ],
               "priority": 1
@@ -602,7 +607,7 @@
         }
       ],
       "exits": {
-        "north": "null",
+        "north": "impassable",
         "south": "MM5",
         "east": null,
         "west": null,
