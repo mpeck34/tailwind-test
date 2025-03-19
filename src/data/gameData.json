@@ -24,10 +24,35 @@
       {
         "name": "Torch",
         "itemState": {
-          "inInventory" : true,
+          "inInventory": true,
           "isLit": false,
           "isSticky": false
-        }
+        },
+        "commands": [
+          {
+            "command": "light torch",
+            "target": "Torch",
+            "description": "Light the torch to illuminate your surroundings.",
+            "response": "You light the torch, casting a warm glow.",
+            "condition": [
+              { "type": "itemState", "key": "isLit", "value": false }
+            ],
+            "actionTrigger": [
+              { "action": "setState", "target": "playerData.inventory.name:Torch", "condition": "isLit", "value": true }
+            ],
+            "priority": 1
+          },
+          {
+            "command": "light torch",
+            "target": "Torch",
+            "description": "Try to light an already lit torch.",
+            "response": "The torch is already lit.",
+            "condition": [
+              { "type": "itemState", "key": "isLit", "value": true }
+            ],
+            "priority": 2
+          }
+        ]
       },
       {
         "name": "Golden Coin",
@@ -73,7 +98,7 @@
     {
       "areaId": "MM5",
       "name": "Village Square",
-      "description": "A peaceful square in the village, with shops to the west. A fountain bubbles in the center. You also see a path leading north and one leading east.",
+      "description": "A peaceful square in the village, with shops to the west. A fountain bubbles in the square center. You also see a path leading south and one leading east.",
       "localArea": "village",
       "realm": "testingArea",
       "areaState": {
@@ -98,12 +123,12 @@
         ]
       },
         "dummyItems":[
-          {"square": "It's very peaceful"},
-          {"shops": "There's many wares for sale. If only you had a coin."},
+          {"square": "It's very peaceful here."},
+          {"shops": "There's many wares for sale to the west. If only you had a coin."},
           {"village": "It's hard to say how big the village is, but it's not very busy."},
           {"water": "Yes, the fountain has water!"},
           {"bubbles": "You help the fountain bubble by blowing some bubbles of your own."},
-          {"path": "There's a few paths here."},
+          {"path": "There's a few paths here, south and east, oh and the shops to the west."},
           {"villagers": "There's a few people out and about in the town."}
         ],
         "npcs": [
@@ -526,7 +551,7 @@
             },
             {
               "command": "take",
-              "description": "Attempt to take before pulling to free",
+              "description": "Attempt to take before 'pull' to free",
               "response": "The staff seems a bit stuck in the undergrowth.",
               "condition": [
                 { "type": "itemState", "key": "pickedUp", "value": false },
@@ -582,7 +607,7 @@
             },
             {
               "command": "look stump",
-              "description": "Look at the tree stump after placing staff.",
+              "description": "Look at the tree stump after 'place' staff.",
               "response": "The stump glows faintly, it seems to beckon you.",
               "condition": [
                 { "type": "areaState", "key": "placedStaffInStump", "value": true }

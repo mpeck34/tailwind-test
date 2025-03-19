@@ -22,7 +22,7 @@ function displayArea(areaId) {
     });
   }
 
-  // Items, NPCs, secrets
+  // Items, NPCs, secrets from function below
   const parsedItemsNpcs = parseItemsNpcs(area);
   if (parsedItemsNpcs.length > 0) {
     output.push("You see:");
@@ -116,6 +116,8 @@ function checkCondition(condition, currentArea, itemName = undefined) {
   return false;
 }
 
+// Create an array of interactable items, npcs, and secrets to be accessed after the
+// available commands (parseCommands) have been checked. Mostly used for console debugging.
 function parseItemsNpcs(currentArea) {
   let parsedItemsNpcs = [];
 
@@ -161,6 +163,8 @@ function parseItemsNpcs(currentArea) {
 }
 
 // Create an array for each area to dip into to see what's available from the JSON
+// The commandParser.js uses this preferentially to figure out what the player's
+// input will do
 function parseCommands(currentArea) {
   let parsedCommands = [];
 
@@ -235,18 +239,36 @@ function parseCommands(currentArea) {
     }));
   });
 
-  // Inventory
-  playerData.inventory.filter(item => item.itemState.inInventory).forEach(item => {
-    parsedCommands.push({
-      command: `inventory ${item.name.toLowerCase()}`,
-      target: item.name,
-      type: 'inventory',
-      response: null,
-      condition: null
-    });
+  // Inventory. Includes commands like 'light torch'
+  playerData.inventory.forEach(item => {
+    if (item.commands) {
+      item.commands.forEach(cmd => {
+        parsedCommands.push({
+          command: cmd.command,
+          target: cmd.target || item.name,
+          type: 'inventory',
+          response: cmd.response,
+          condition: cmd.condition,
+          actionTrigger: cmd.actionTrigger,
+          priority: cmd.priority || 0
+        });
+      });
+    }
+    // Keep generic inventory commands to look at an item
+    if (item.itemState.inInventory) {
+      parsedCommands.push({
+        command: `inventory ${item.name.toLowerCase()}`,
+        target: item.name,
+        type: 'inventory',
+        response: null,
+        condition: null,
+        priority: 0
+      });
+    }
   });
 
-  // Add dummyItems as look commands
+  // Add dummyItems as look commands. These are simple statements that allow the
+  // player to look around without changing the game state
   currentArea.dummyItems?.forEach(dummy => {
     const [target, response] = Object.entries(dummy)[0]; // e.g., ["square", "It's very peaceful"]
     parsedCommands.push({
@@ -268,6 +290,7 @@ function parseCommands(currentArea) {
     actionTrigger: null
   });
 
+  // Display inventory
   parsedCommands.push({
     command: 'inventory',
     target: null,
@@ -723,6 +746,54 @@ function handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatc
   return { needsFurtherInput: false, output };
 }
 
+// Light command
+function handleLightCommand(input, parsedCommands, currentArea, target, bestMatch) {
+  const output = [];
+
+  if (!target) {
+    output.push("What do you want to light?");
+    return { needsFurtherInput: false, output };
+  }
+
+  const invItem = playerData.inventory.find(item => 
+    item.name.toLowerCase().includes(target.toLowerCase()) && item.itemState.inInventory
+  );
+
+  if (!invItem) {
+    output.push(`You don't have anything matching "${target}" in your inventory to light.`);
+    return { needsFurtherInput: false, output };
+  }
+
+  let validMatch = null;
+  if (bestMatch && bestMatch.command.startsWith('light') && 
+      bestMatch.target && bestMatch.target.toLowerCase().includes(target.toLowerCase()) &&
+      (!bestMatch.condition || checkCondition(bestMatch.condition, currentArea, bestMatch.target))) {
+    validMatch = bestMatch;
+    console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
+  } else {
+    console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'} (target: ${bestMatch?.target || 'none'})`);
+    const lightMatches = parsedCommands.filter(c => 
+      c.command.startsWith('light') && c.target && 
+      c.target.toLowerCase().includes(target.toLowerCase())
+    );
+    validMatch = lightMatches
+      .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+    console.log(`Fallback selected: ${validMatch ? validMatch.command : 'none'} (target: ${validMatch?.target || 'none'}, priority: ${validMatch?.priority || 0})`);
+  }
+
+  if (validMatch && validMatch.response) {
+    output.push(validMatch.response);
+    handleAction(validMatch, currentArea);
+  } else if (bestMatch && bestMatch.type === 'generic') {
+    output.push(`You can't light the ${invItem.name} right now.`);
+  } else {
+    output.push(`You can't light the ${invItem.name} right now.`);
+  }
+
+  return { needsFurtherInput: false, output };
+}
+
 // Display inventory
 function displayInventory() {
   const invItems = playerData.inventory.filter(item => item.itemState.inInventory);
@@ -738,7 +809,7 @@ function handleInventoryItem(input) {
   const output = [];
   const target = input.toLowerCase().slice(10).trim();
   const invItems = playerData.inventory.filter(item => 
-    item.name.toLowerCase().includes(target)
+    item.name.toLowerCase().includes(target) && item.itemState.inInventory
   );
 
   if (invItems.length === 0) {
@@ -879,6 +950,8 @@ function handleCommand(input, isSecondInput) {
       return handleUseCommand(input, parsedCommands, currentArea, target, bestMatch);
     case 'place':
       return handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatch);
+      case 'light':  // New case
+      return handleLightCommand(input, parsedCommands, currentArea, target, bestMatch);
     default:
       if (bestMatch) {
         handleAction(bestMatch, currentArea);

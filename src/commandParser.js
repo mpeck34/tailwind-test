@@ -13,8 +13,9 @@ const commandDictionary = {
     "push": ["shove", "nudge", "psh", "pu", "shv", "press", "pres"],
     "pull": ["tug", "yank", "pul", "pl", "yg"],
     "hit": ["hit", "tap", "smash", "whack", "bonk"],
-    "use": ["utilize", "activate", "us", "u", "act", "employ"],
-    "place": ["put", "set", "pla", "pt", "drop", "lay"]
+    "use": ["utilize", "activate", "us", "u", "act", "employ", "utilise"],
+    "place": ["put", "set", "pla", "pt", "drop", "lay"],
+    "light": ["ignite", "kindle", "burn", "blaze"]
 };
 
 // Generate commandSynonyms from commandDictionary
@@ -26,6 +27,7 @@ Object.entries(commandDictionary).forEach(([command, synonyms]) => {
     });
 });
 
+const prepositions = ['at', 'to', 'in', 'on', 'with', 'from', 'by', 'into', 'onto', 'of'];
 const MIN_COMMAND_LENGTH = 2;
 
 /**
@@ -41,8 +43,10 @@ function parseCommand(input, parsedCommands, currentArea, checkCondition) {
     const trimmedInput = input.toLowerCase().trim();
     if (!trimmedInput) return { command: null, target: null, bestMatch: null };
 
-    const [inputCommand, ...targetParts] = trimmedInput.split(' ');
-    const inputTarget = targetParts.join(' ').trim() || null;
+    // Split and filter out prepositions
+    const parts = trimmedInput.split(' ').filter(part => !prepositions.includes(part));
+    const inputCommand = parts[0];
+    const inputTarget = parts.slice(1).join(' ').trim() || null;
 
     let canonicalCommand = commandSynonyms[inputCommand];
 
