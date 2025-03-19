@@ -21,17 +21,19 @@
       },
       {
         "name": "Torch",
-        "description": "A wooden torch, warm in your grip.",
+        "description": "A wooden torch.",
         "lookBlurbs": [
-          "It flickers like it's plotting something.",
+          "Until it's lit it's just a stick.",
           "Smells faintly of burnt dreams.",
           "You wonder how long it'll last before you're in the dark again.",
           "It's a stick that's really into fire."
         ],
         "extraLookBlurbs": {
           "isLit": [
+            "It flickers like it's plotting something.",
             "The flame dances brightly, casting shadows across your path.",
-            "The warmth of the fire makes you feel safer in the dark."
+            "The warmth of the fire makes you feel safer in the dark.",
+            "Keeps me warm at night."
           ]
         }
       },

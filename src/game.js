@@ -950,7 +950,7 @@ function handleCommand(input, isSecondInput) {
       return handleUseCommand(input, parsedCommands, currentArea, target, bestMatch);
     case 'place':
       return handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatch);
-      case 'light':  // New case
+      case 'light':
       return handleLightCommand(input, parsedCommands, currentArea, target, bestMatch);
     default:
       if (bestMatch) {
