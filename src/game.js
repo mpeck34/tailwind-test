@@ -83,6 +83,7 @@ function checkCondition(condition, currentArea, itemName = undefined) {
     return hasItem;
   }
   if (condition.type === 'doesNotHaveItem') {
+    // eslint-disable-next-line no-constant-binary-expression
     const doesNotHaveItem = !(playerData?.inventory?.some(i => 
       i.name === condition.item && i.itemState?.inInventory === true)) ?? false;
     console.log(`Checking if player does not have "${condition.item}" in inventory: ${doesNotHaveItem}`);
@@ -123,7 +124,9 @@ function parseItemsNpcs(currentArea) {
 
   // Items
   currentArea.items.forEach(item => {
-    if (!item.itemState?.pickedUp) { // Only include if not picked up
+    const isHidden = item.itemState?.isHidden ?? false;
+    const isInvisible = item.itemState?.isInvisible ?? false;
+    if (!isHidden && !isInvisible && !item.itemState?.pickedUp) { // Only include if not hidden, not invisible, and not picked up
       parsedItemsNpcs.push({
         type: 'item',
         name: item.name,
@@ -131,30 +134,42 @@ function parseItemsNpcs(currentArea) {
         state: item.itemState,
         interactions: item.interactions
       });
+    } else {
+      console.log(`Skipped item ${item.name} (${isHidden ? 'hidden' : ''}${isInvisible ? 'invisible' : ''}${item.itemState?.pickedUp ? 'picked up' : ''})`);
     }
   });
 
   // NPCs
   currentArea.npcs.forEach(npc => {
-    parsedItemsNpcs.push({
-      type: 'npc',
-      name: npc.name,
-      description: npc.description,
-      state: npc.npcState,
-      interactions: npc.interactions
-    });
+    const isHidden = npc.npcState?.isHidden ?? false;
+    const isInvisible = npc.npcState?.isInvisible ?? false;
+    if (!isHidden && !isInvisible) { // Only include if neither hidden nor invisible
+      parsedItemsNpcs.push({
+        type: 'npc',
+        name: npc.name,
+        description: npc.description,
+        state: npc.npcState,
+        interactions: npc.interactions
+      });
+    } else {
+      console.log(`Skipped NPC ${npc.name} (${isHidden ? 'hidden' : ''}${isInvisible ? 'invisible' : ''})`);
+    }
   });
 
   // Secrets
   currentArea.secrets.forEach(secret => {
-    if (!secret.secretState?.isInvisible) { // Only include visible secrets
+    const isHidden = secret.secretState?.isHidden ?? false;
+    const isInvisible = secret.secretState?.isInvisible ?? false;
+    if (!isHidden && !isInvisible) { // Only include if neither hidden nor invisible
       parsedItemsNpcs.push({
         type: 'secret',
         name: secret.name,
         description: secret.description,
         state: secret.secretState,
-        interactions: secret.interactions || [] // Default to empty if secrets have no interactions
+        interactions: secret.interactions || []
       });
+    } else {
+      console.log(`Skipped secret ${secret.name} (${isHidden ? 'hidden' : ''}${isInvisible ? 'invisible' : ''})`);
     }
   });
 
@@ -181,63 +196,79 @@ function parseCommands(currentArea) {
 
   // Items
   currentArea.items.forEach(item => {
-    item.commands.forEach(cmd => {
-      // Use the raw command string for "place" commands with their own targets
-      if (cmd.command.startsWith('place') && cmd.target) {
-        parsedCommands.push({
-          command: cmd.command, // e.g., "place sticky sap"
-          target: cmd.target,   // e.g., "Sticky Sap"
-          type: 'item',
-          response: cmd.response,
-          condition: cmd.condition,
-          actionTrigger: cmd.actionTrigger,
-          priority: cmd.priority || 0
-        });
-      } else {
-        // For other commands, append item name as target
-        parsedCommands.push({
-          command: `${cmd.command} ${item.name.toLowerCase()}`, // e.g., "take golden coin"
-          target: item.name,
-          type: 'item',
-          response: cmd.response,
-          condition: cmd.condition,
-          actionTrigger: cmd.actionTrigger,
-          priority: cmd.priority || 0
-        });
-      }
-    });
+    const isHidden = item.itemState?.isHidden ?? false;
+    const isInvisible = item.itemState?.isInvisible ?? false;
+    if (!isHidden && !isInvisible && !item.itemState?.pickedUp) { // Only include if not hidden, not invisible, and not picked up
+      item.commands.forEach(cmd => {
+        if (cmd.command.startsWith('place') && cmd.target) {
+          parsedCommands.push({
+            command: cmd.command,
+            target: cmd.target,
+            type: 'item',
+            response: cmd.response,
+            condition: cmd.condition,
+            actionTrigger: cmd.actionTrigger,
+            priority: cmd.priority || 0
+          });
+        } else {
+          parsedCommands.push({
+            command: `${cmd.command} ${item.name.toLowerCase()}`,
+            target: item.name,
+            type: 'item',
+            response: cmd.response,
+            condition: cmd.condition,
+            actionTrigger: cmd.actionTrigger,
+            priority: cmd.priority || 0
+          });
+        }
+      });
+    } else {
+      console.log(`Skipped commands for item ${item.name} (${isHidden ? 'hidden' : ''}${isInvisible ? 'invisible' : ''}${item.itemState?.pickedUp ? 'picked up' : ''})`);
+    }
   });
 
   // NPCs
   const npcCommands = {};
   currentArea.npcs.forEach(npc => {
-    npc.commands.forEach(cmd => {
-      const command = `${cmd.command} ${npc.name.toLowerCase()}`;
-      if (!npcCommands[npc.name]) npcCommands[npc.name] = [];
-      npcCommands[npc.name].push({
-        command,
-        target: npc.name,
-        type: 'npc',
-        response: cmd.response,
-        condition: cmd.condition,
-        actionTrigger: cmd.actionTrigger,
-        priority: cmd.priority || 0
+    const isHidden = npc.npcState?.isHidden ?? false;
+    const isInvisible = npc.npcState?.isInvisible ?? false;
+    if (!isHidden && !isInvisible) { // Only include commands if NPC is accessible
+      npc.commands.forEach(cmd => {
+        const command = `${cmd.command} ${npc.name.toLowerCase()}`;
+        if (!npcCommands[npc.name]) npcCommands[npc.name] = [];
+        npcCommands[npc.name].push({
+          command,
+          target: npc.name,
+          type: 'npc',
+          response: cmd.response,
+          condition: cmd.condition,
+          actionTrigger: cmd.actionTrigger,
+          priority: cmd.priority || 0
+        });
       });
-    });
+    } else {
+      console.log(`Skipped commands for NPC ${npc.name} (${isHidden ? 'hidden' : ''}${isInvisible ? 'invisible' : ''})`);
+    }
   });
   Object.values(npcCommands).forEach(commands => parsedCommands.push(...commands));
 
   // Secrets
   currentArea.secrets?.forEach(secret => {
-    secret.commands?.forEach(cmd => parsedCommands.push({
-      command: cmd.command,
-      target: cmd.target || secret.name,
-      type: 'secret',
-      response: cmd.response,
-      condition: cmd.condition,
-      actionTrigger: cmd.actionTrigger,
-      priority: cmd.priority || 0
-    }));
+    const isHidden = secret.secretState?.isHidden ?? false;
+    const isInvisible = secret.secretState?.isInvisible ?? false;
+    if (!isHidden && !isInvisible) { // Only include commands if secret is accessible
+      secret.commands?.forEach(cmd => parsedCommands.push({
+        command: cmd.command,
+        target: cmd.target || secret.name,
+        type: 'secret',
+        response: cmd.response,
+        condition: cmd.condition,
+        actionTrigger: cmd.actionTrigger,
+        priority: cmd.priority || 0
+      }));
+    } else {
+      console.log(`Skipped commands for secret ${secret.name} (${isHidden ? 'hidden' : ''}${isInvisible ? 'invisible' : ''})`);
+    }
   });
 
   // Inventory. Includes commands like 'light torch'
@@ -376,7 +407,10 @@ function handleGoCommand(input, parsedCommands, currentArea) {
 
   if (!goTarget) {
     const availableExits = parsedCommands
-      .filter(c => c.command.startsWith('go') && c.target)
+      .filter(c => c.command.startsWith('go') &&
+        c.target &&
+        (!c.condition || checkCondition(c.condition, currentArea, c.target))
+      )
       .map(c => c.target);
     if (availableExits.length > 0) {
       output.push('Available directions:');
@@ -416,8 +450,25 @@ function handleTalkCommand(input, parsedCommands, currentArea, target, bestMatch
   if (!target) {
     output.push("Who would you like to talk to?");
     const uniqueNpcs = [...new Set(parsedCommands
-      .filter(c => c.command.startsWith('talk') && c.target && 
-                   (!c.condition || checkCondition(c.condition, currentArea, c.target)))
+      .filter(c => {
+        // Basic command checks
+        const isTalkCommand = c.command.startsWith('talk') && c.target;
+        if (!isTalkCommand) return false;
+
+        // Find the NPC in the current area
+        const npc = currentArea.npcs?.find(n => n.name === c.target);
+        if (!npc) return false; // Skip if NPC isn’t in the area
+
+        // Check visibility: neither hidden nor invisible
+        const isHidden = npc.npcState?.isHidden ?? false;
+        const isInvisible = npc.npcState?.isInvisible ?? false;
+        const isAccessible = !isHidden && !isInvisible;
+
+        // Check command condition
+        const conditionPasses = !c.condition || checkCondition(c.condition, currentArea, c.target);
+
+        return isAccessible && conditionPasses;
+      })
       .map(c => c.target))];
     if (uniqueNpcs.length > 0) {
       uniqueNpcs.forEach(npc => output.push(`- ${npc}`));

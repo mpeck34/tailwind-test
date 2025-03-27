@@ -476,7 +476,7 @@
           "name": "Forest Spirit",
           "description": "A mystical spirit that guides lost travelers.",
           "npcState": {
-            "isInvisible": false,
+            "isInvisible": true,
             "hasMetPlayer": false,
             "hasGivenMushroom": false
           },
