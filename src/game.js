@@ -174,6 +174,7 @@ function parseCommands(currentArea) {
     target: cmd.command.startsWith('go') ? cmd.command.split(' ')[1] || null : null,
     type: 'exit',
     response: cmd.response,
+    elseResponse: cmd.elseResponse,
     condition: cmd.condition,
     actionTrigger: cmd.actionTrigger
   }));
@@ -374,7 +375,6 @@ function handleGoCommand(input, parsedCommands, currentArea) {
   const goTarget = input.toLowerCase().slice(3).trim();
 
   if (!goTarget) {
-    output.push('Which direction would you like to go?');
     const availableExits = parsedCommands
       .filter(c => c.command.startsWith('go') && c.target)
       .map(c => c.target);
@@ -389,15 +389,21 @@ function handleGoCommand(input, parsedCommands, currentArea) {
     c.command.startsWith('go') && c.target && 
     c.target.toLowerCase().includes(goTarget)
   );
-  const validMatch = goMatches.find(c => 
-    !c.condition || checkCondition(c.condition, currentArea, c.target)
-  );
+  console.log(goMatches);
 
-  if (validMatch) {
-    output.push(validMatch.response);
-    handleAction(validMatch, currentArea);
+if (goMatches.length === 0) {
+    output.push(`There doesn't appear to be an exit "${goTarget}" from here.`);
+    return { needsFurtherInput: false, output };
+  }
+
+  const matchedCommand = goMatches[0]; // Assume the first match is the intended one
+  if (!matchedCommand.condition || checkCondition(matchedCommand.condition, currentArea, matchedCommand.target)) {
+    output.push(matchedCommand.response);
+    handleAction(matchedCommand, currentArea);
+  } else if (matchedCommand.elseResponse) {
+    output.push(matchedCommand.elseResponse);
   } else {
-    output.push(`You can’t go "${goTarget}" from here.`);
+    output.push(`You can't go "${goTarget}" from here.`);
   }
 
   return { needsFurtherInput: false, output };
