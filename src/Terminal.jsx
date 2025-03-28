@@ -7,8 +7,6 @@ function Terminal({ onQuit }) {
   const [history, setHistory] = useState([]);
   const historyEndRef = useRef(null);
   const inputRef = useRef(null);
-  const [waitingForInput, setWaitingForInput] = useState(false); // Track if we're waiting for further input
-  const [commandState, setCommandState] = useState(null); // To track the state of the current command
   const [isShaking, setIsShaking] = useState(false);
   const [flickerIndex, setFlickerIndex] = useState(null);
   const [glitchIndex, setGlitchIndex] = useState(null);
@@ -69,6 +67,7 @@ useEffect(() => {
 
   const handleInputSubmit = (e) => {
     e.preventDefault();
+    if (!input.trim()) return;
     
     // Add the player's input to history
     let newHistory = [`> ${input}`];
@@ -81,18 +80,12 @@ useEffect(() => {
       return;
     }
 
-    const response = handleCommand(input, waitingForInput);
-    if (!waitingForInput) {
-      if (response.needsFurtherInput) {
-        setWaitingForInput(true);
-        setCommandState(response.command);
-      }
-      if (response.output.some((line) => line.toLowerCase().includes('error') || line.toLowerCase().includes('unknown'))) {
-        setIsShaking(true);
-        setTimeout(() => setIsShaking(false), 200);
-      }
-    } else {
-      setWaitingForInput(false);
+    const response = handleCommand(input);
+    const output = Array.isArray(response.output) ? response.output : ['Something went wrong.'];
+
+    if (output.some((line) => line.toLowerCase().includes('error') || line.toLowerCase().includes('unknown'))) {
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 200);
     }
 
     setHistory((prev) => [...prev, ...newHistory, ...response.output]);
