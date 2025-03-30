@@ -158,395 +158,416 @@
           { "condition": { "type": "areaState", "key": "isHidden", "value": true }, "text": "The square is obscured by a thick mist." }
         ]
       },
-        "dummyItems":[
-          {"square": "It's very peaceful here."},
-          {"shops": "There's many wares for sale to the west. If only you had a coin."},
-          {"village": "It's hard to say how big the village is, but it's not very busy."},
-          {"water": "Yes, the fountain has water!"},
-          {"bubbles": "You help the fountain bubble by blowing some bubbles of your own."},
-          {"path": "There's a few paths here, south and east, oh and the shops to the west."},
-          {"villagers": "There's a few people out and about in the town."}
-        ],
-        "npcs": [
-          {
-            "npcId": 1,
-            "name": "Old Man",
-            "description": "An old man with a long white beard, he knows many stories.",
-            "npcState": {
-              "hasMetPlayer": false,
-              "knowsSecret": true,
-              "isAsleep": false,
-              "isHostile": false,
-              "hasMagicLens": true
-            },
-            "interactions": [
-              {
-                "condition": { "type": "npcState", "npc": "Old Man", "key": "hasMetPlayer", "value": false },
-                "text": "'Welcome to the village.'"
-              },
-              {
-                "condition": { "type": "npcState", "npc": "Old Man", "key": "hasMetPlayer", "value": true },
-                "text": "'Good to see you again.'"
-              }
-            ],
-            "commands": [
-              {
-                "command": "talk",
-                "description": "Talk to the Old Man",
-                "response": "The Old Man tells you stories about the village and hands you some Sticky Sap.",
-                "condition": [ { "type": "areaState", "key": "spokenToOldMan", "value": false } ],
-                "actionTrigger": [
-                  { "action": "setState", "target": "areas.areaId:MM5", "condition": "spokenToOldMan", "value": true },
-                  { "action": "setState", "target": "areas.areaId:MM5.npcs.npcId:1", "condition": "hasMetPlayer", "value": true },
-                  { "action": "addItemToInventory", "item": "Sticky Sap" }
-                ],
-                "priority": 1
-              },
-              {
-                "command": "talk",
-                "description": "Talk to the Old Man",
-                "response": "The Old Man gives you a Magic Lens, saying, 'This will help you see hidden truths.'",
-                "condition": [ { "type": "areaState", "key": "spokenToOldMan", "value": true },
-                                { "type": "npcState", "npc": "Old Man", "key": "hasMagicLens", "value": true } ],
-                "actionTrigger": [ { "action": "addItemToInventory", "item": "Magic Lens" }, 
-                                    { "action": "setState", "target": "areas.areaId:MM5.npcs.npcId:1", "condition": "hasMagicLens", "value": false } ],
-                "priority": 3
-              },
-              {
-                "command": "talk",
-                "description": "Talk to the Old Man",
-                "response": "He warns you to stay away from the dark forest.",
-                "condition": [ { "type": "areaState", "key": "spokenToOldMan", "value": true } ],
-                "actionTrigger": [],
-                "priority": 2
-              },
-              {
-                "command": "look",
-                "description": "Look at the Old Man.",
-                "response": "He looks old.",
-                "condition": null,
-                "actionTrigger": [],
-                "priority": 1
-              }
-            ]
-          }
-        ],
-        "items": [
-          {
-            "itemId": 1,
-            "name": "Golden Coin",
-            "description": "A shiny gold coin, looks valuable.",
-            "itemState": {
-              "isHidden": false,
-              "isSticky": false,
-              "isCursed": false,
-              "pickedUp": false,
-              "lookedAt": false
-            },
-            "interactions": [
-              {
-                "condition": [
-                  { "type": "itemState", "key": "lookedAt", "value": true },
-                  { "type": "itemState", "key": "pickedUp", "value": false }
-                ],
-                "text": "It continues to lie on the ground, glinting at you menacingly... Well, not that menacingly."
-              },
-              {
-                "condition": { "type": "itemState", "key": "isCursed", "value": true },
-                "text": "The coin feels unnaturally cold in your presence."
-              },
-              {
-                "condition": { "type": "itemState", "key": "isSticky", "value": true },
-                "text": "The coin looks oddly shiny and sticky."
-              }
-            ],
-            "commands": [
-              {
-                "command": "take",
-                "description": "Pick up the Golden Coin.",
-                "response": "You pick up the coin and add it to your inventory.",
-                "condition": [
-                  { "type": "itemState", "key": "pickedUp", "value": false }
-                ],
-                "actionTrigger": [
-                  { "action": "setState", "target": "playerData.inventory.name:Golden Coin", "condition": "pickedUp", "value": true },
-                  { "action": "addItemToInventory", "item": "Golden Coin" },
-                  { "action": "setState", "target": "areas.areaId:MM5", "condition": "villagersAngry", "value": true }
-                ]
-              },
-              {
-                "command": "look",
-                "description": "Look at the Golden Coin.",
-                "response": "The coin glints in the sunlight, its value unknown.",
-                "condition": [
-                  { "type": "itemState", "key": "lookedAt", "value": false },
-                  { "type": "itemState", "key": "pickedUp", "value": false }
-                ],
-                "actionTrigger": [
-                  { "action": "setState", "target": "playerData.inventory.name:Golden Coin", "condition": "lookedAt", "value": true }
-                ],
-                "priority": 1
-              },
-              {
-                "command": "look",
-                "description": "Look closer at the Golden Coin.",
-                "response": "As you look closer at the coin, you can see something engraved upon it.",
-                "condition": [
-                  { "type": "itemState", "key": "lookedAt", "value": true },
-                  { "type": "itemState", "key": "pickedUp", "value": false }
-                ],
-                "priority": 2
-              },
-              {
-                "command": "look",
-                "description": "Look at the sticky Golden Coin.",
-                "response": "You're hoping the coin isn't stuck to the ground.",
-                "condition": [
-                  { "type": "itemState", "key": "lookedAt", "value": true },
-                  { "type": "itemState", "key": "pickedUp", "value": false },
-                  { "type": "itemState", "key": "isSticky", "value": true }
-                ],
-                "priority": 3
-              },
-              {
-                "command": "place sticky sap",
-                "target": "Sticky Sap",
-                "description": "Place the Sticky Sap on the Golden Coin.",
-                "response": "You smear the Sticky Sap onto the Golden Coin, making it sticky.",
-                "condition": [
-                  { "type": "hasItem", "item": "Sticky Sap" },
-                  { "type": "itemState", "area": "areas.areaId:MM5", "item": "Golden Coin", "key": "pickedUp", "value": false }
-                ],
-                "actionTrigger": [
-                  { "action": "setState", "target": "playerData.inventory.name:Golden Coin", "condition": "isSticky", "value": true },
-                  { "action": "removeItemFromInventory", "item": "Sticky Sap" }
-                ],
-                "priority": 1
-              },
-              {
-                "command": "place golden coin",
-                "target": "Golden Coin",
-                "description": "Place the Golden Coin back in the square.",
-                "response": "You place the Golden Coin back in the square.",
-                "condition": [
-                  { "type": "hasItem", "item": "Golden Coin" }
-                ],
-                "actionTrigger": [
-                  { "action": "setState", "target": "playerData.inventory.name:Golden Coin", "condition": "pickedUp", "value": false },
-                  { "action": "removeItemFromInventory", "item": "Golden Coin" }
-                ],
-                "priority": 1
-              }
-            ]
+      "dummyItems":[
+        {"square": "It's very peaceful here."},
+        {"shops": "There's many wares for sale to the west. If only you had a coin."},
+        {"village": "It's hard to say how big the village is, but it's not very busy."},
+        {"water": "Yes, the fountain has water!"},
+        {"bubbles": "You help the fountain bubble by blowing some bubbles of your own."},
+        {"path": "There's a few paths here, south and east, oh and the shops to the west."},
+        {"villagers": "There's a few people out and about in the town."}
+      ],
+      "npcs": [
+        {
+          "npcId": 1,
+          "name": "Old Man",
+          "description": "An old man with a long white beard, he knows many stories.",
+          "npcState": {
+            "hasMetPlayer": false,
+            "knowsSecret": true,
+            "isAsleep": false,
+            "isHostile": false,
+            "hasMagicLens": true
           },
-          {
-            "itemId": 2,
-            "name": "Computer",
-            "description": "A dusty old computer humming faintly.",
-            "itemState": { 
-              "isHidden": false,
-              "isInvisible": false, 
-              "poweredOn": false },
-              "interactions": [
-                {
-                  "condition": [
-                    { "type": "itemState", "key": "poweredOn", "value": false }
-                  ],
-                  "text": "You think the computer is on, but the screen isn't showing anything."
-                },
-                {
-                  "condition": { "type": "itemState", "key": "poweredOn", "value": true },
-                  "text": "The screen flickers from time to time."
-                }
-              ],
-            "commands": [
-              {
-                "command": "use computer",
-                "response": "You press a key, and the screen flickers to life.",
-                "condition": { "type": "itemState", "key": "poweredOn", "value": false },
-                "actionTrigger": [
-                  { "action": "setState", "target": "areas.areaId:MM5.items.name:Computer", "condition": "poweredOn", "value": true }
-                ]
-              },
-              {
-                "command": "use computer",
-                "response": "The screen glows softly, displaying cryptic symbols.",
-                "condition": { "type": "itemState", "key": "poweredOn", "value": true }
-              }
-            ]
-          }
-        ],
-        "secrets": [
-          {
-            "secretId": 1,
-            "name": "fountain",
-            "description": "A stone fountain sits in the middle of the square, surrounded by flowers.",
-            "discovery": "It’s always visible, but closer inspection might reveal more.",
-            "secretState": {
-              "isInvisible": false,
-              "isHidden": false
+          "interactions": [
+            {
+              "condition": { "type": "npcState", "npc": "Old Man", "key": "hasMetPlayer", "value": false },
+              "text": "'Welcome to the village.'"
             },
-            "commands": [
-              {
-                "command": "look fountain",
-                "target": "fountain",
-                "description": "Look at the fountain without Magic Lens.",
-                "response": "You see a regular fountain, nothing special.",
-                "condition": [
-                  { "type": "areaState", "key": "revealedButton", "value": false }
-                ],
-                "priority": 1
-              },
-              {
-                "command": "look fountain",
-                "target": "fountain",
-                "description": "Used the Magic Lens on the the fountain with Magic Lens to see the button.",
-                "response": "You notice a strange button on the side of the fountain.",
-                "condition": [
-                  { "type": "areaState", "key": "revealedHiddenPassage", "value": false },
-                  { "type": "areaState", "key": "revealedButton", "value": true }
-                ],
-                "priority": 2
-              },
-              {
-                "command": "look fountain",
-                "target": "fountain",
-                "description": "Look at the fountain after revealing the passage.",
-                "response": "The fountain is sitting in the flowers. Where is the water coming from?",
-                "condition": [
-                  { "type": "areaState", "key": "revealedHiddenPassage", "value": true },
-                  { "type": "areaState", "key": "revealedButton", "value": true }
-                ],
-                "priority": 3
-              }
-            ]
-          },
-          {
-            "secretId": 2,
-            "name": "hidden button",
-            "description": "A strange button on the side of the fountain.",
-            "discovery": "Visible only with the Magic Lens.",
-            "secretState": {
-              "isInvisible": true,
-              "isHidden": false
-            },
-            "commands": [
-              {
-                "command": "push button",
-                "target": "hidden button",
-                "description": "Press the button on the fountain.",
-                "response": "The fountain moves aside, revealing a hidden passage.",
-                "condition": [
-                  { "type": "areaState", "key": "revealedHiddenPassage", "value": false }
-                ],
-                "actionTrigger": [
-                  { "action": "setState", "target": "areas.areaId:MM5", "condition": "revealedHiddenPassage", "value": true },
-                  { "action": "setState", "target": "areas.areaId:MM5.secrets.secretId:3", "condition": "isInvisible", "value": false }
-                ],
-                "priority": 2
-              },
-              {
-                "command": "push button",
-                "target": "hidden button",
-                "description": "Try to push a button after passage is revealed.",
-                "response": "The button is already pressed, and the passage is open.",
-                "condition": [
-                  { "type": "areaState", "key": "revealedHiddenPassage", "value": true }
-                ],
-                "priority": 1
-              }
-            ]
-          },
-          {
-            "secretId": 3,
-            "name": "hidden passage",
-            "description": "A narrow passage leads into darkness behind the fountain.",
-            "discovery": "Revealed by pressing the fountain button.",
-            "secretState": {
-              "isInvisible": true,
-              "isHidden": false
-            },
-            "commands": [
-              {
-                "command": "look hidden passage",
-                "target": "hidden passage",
-                "description": "Look at the revealed hidden passage.",
-                "response": "A narrow passage leads into darkness behind the fountain.",
-                "condition": [
-                  { "type": "areaState", "key": "revealedHiddenPassage", "value": true }
-                ],
-                "priority": 2
-              }
-            ]
-          }
-        ],
-        "exits": {
-          "north": "impassable",
-          "south": "ML5",
-          "east": "NM5",
-          "west": "LM5",
-          "up": "MM6",
-          "down": "MM4",
-          "teleport": null,
-          "passage": "invisible",
+            {
+              "condition": { "type": "npcState", "npc": "Old Man", "key": "hasMetPlayer", "value": true },
+              "text": "'Good to see you again.'"
+            }
+          ],
           "commands": [
-          {
-            "command": "go north",
-            "description": "This way to the dark forest is blocked.",
-            "response": "Trees block your path.",
-            "condition": null
+            {
+              "command": "talk",
+              "description": "Talk to the Old Man",
+              "response": "The Old Man tells you stories about the village and hands you some Sticky Sap.",
+              "condition": [ { "type": "areaState", "key": "spokenToOldMan", "value": false } ],
+              "actionTrigger": [
+                { "action": "setState", "target": "areas.areaId:MM5", "condition": "spokenToOldMan", "value": true },
+                { "action": "setState", "target": "areas.areaId:MM5.npcs.npcId:1", "condition": "hasMetPlayer", "value": true },
+                { "action": "addItemToInventory", "item": "Sticky Sap" }
+              ],
+              "priority": 1
+            },
+            {
+              "command": "talk",
+              "description": "Talk to the Old Man",
+              "response": "The Old Man gives you a Magic Lens, saying, 'This will help you see hidden truths.'",
+              "condition": [ { "type": "areaState", "key": "spokenToOldMan", "value": true },
+                              { "type": "npcState", "npc": "Old Man", "key": "hasMagicLens", "value": true } ],
+              "actionTrigger": [ { "action": "addItemToInventory", "item": "Magic Lens" }, 
+                                  { "action": "setState", "target": "areas.areaId:MM5.npcs.npcId:1", "condition": "hasMagicLens", "value": false } ],
+              "priority": 3
+            },
+            {
+              "command": "talk",
+              "description": "Talk to the Old Man",
+              "response": "He warns you to stay away from the dark forest to the north.",
+              "condition": [ { "type": "areaState", "key": "spokenToOldMan", "value": true } ],
+              "actionTrigger": [],
+              "priority": 2
+            },
+            {
+              "command": "look",
+              "description": "Look at the Old Man.",
+              "response": "He looks old.",
+              "condition": null,
+              "actionTrigger": [],
+              "priority": 1
+            }
+          ]
+        }
+      ],
+      "items": [
+        {
+          "itemId": 1,
+          "name": "Golden Coin",
+          "description": "A shiny gold coin, looks valuable.",
+          "itemState": {
+            "isHidden": false,
+            "isSticky": false,
+            "isCursed": false,
+            "pickedUp": false,
+            "lookedAt": false
           },
-          {
-            "command": "go south",
-            "description": "Move to the south exit.",
-            "response": "You travel to the southern path.",
-            "condition": null
+          "interactions": [
+            {
+              "condition": [
+                { "type": "itemState", "key": "lookedAt", "value": true },
+                { "type": "itemState", "key": "pickedUp", "value": false }
+              ],
+              "text": "It continues to lie on the ground, glinting at you menacingly... Well, not that menacingly."
+            },
+            {
+              "condition": { "type": "itemState", "key": "isCursed", "value": true },
+              "text": "The coin feels unnaturally cold in your presence."
+            },
+            {
+              "condition": { "type": "itemState", "key": "isSticky", "value": true },
+              "text": "The coin looks oddly shiny and sticky."
+            }
+          ],
+          "commands": [
+            {
+              "command": "take",
+              "description": "Pick up the Golden Coin.",
+              "response": "You pick up the coin and add it to your inventory.",
+              "condition": [
+                { "type": "itemState", "key": "pickedUp", "value": false }
+              ],
+              "actionTrigger": [
+                { "action": "setState", "target": "playerData.inventory.name:Golden Coin", "condition": "pickedUp", "value": true },
+                { "action": "addItemToInventory", "item": "Golden Coin" },
+                { "action": "setState", "target": "areas.areaId:MM5", "condition": "villagersAngry", "value": true }
+              ]
+            },
+            {
+              "command": "look",
+              "description": "Look at the Golden Coin.",
+              "response": "The coin glints in the sunlight, its value unknown.",
+              "condition": [
+                { "type": "itemState", "key": "lookedAt", "value": false },
+                { "type": "itemState", "key": "pickedUp", "value": false }
+              ],
+              "actionTrigger": [
+                { "action": "setState", "target": "playerData.inventory.name:Golden Coin", "condition": "lookedAt", "value": true }
+              ],
+              "priority": 1
+            },
+            {
+              "command": "look",
+              "description": "Look closer at the Golden Coin.",
+              "response": "As you look closer at the coin, you can see something engraved upon it.",
+              "condition": [
+                { "type": "itemState", "key": "lookedAt", "value": true },
+                { "type": "itemState", "key": "pickedUp", "value": false }
+              ],
+              "priority": 2
+            },
+            {
+              "command": "look",
+              "description": "Look at the sticky Golden Coin.",
+              "response": "You're hoping the coin isn't stuck to the ground.",
+              "condition": [
+                { "type": "itemState", "key": "lookedAt", "value": true },
+                { "type": "itemState", "key": "pickedUp", "value": false },
+                { "type": "itemState", "key": "isSticky", "value": true }
+              ],
+              "priority": 3
+            },
+            {
+              "command": "place sticky sap",
+              "target": "Sticky Sap",
+              "description": "Place the Sticky Sap on the Golden Coin.",
+              "response": "You smear the Sticky Sap onto the Golden Coin, making it sticky.",
+              "condition": [
+                { "type": "hasItem", "item": "Sticky Sap" },
+                { "type": "itemState", "area": "areas.areaId:MM5", "item": "Golden Coin", "key": "pickedUp", "value": false }
+              ],
+              "actionTrigger": [
+                { "action": "setState", "target": "playerData.inventory.name:Golden Coin", "condition": "isSticky", "value": true },
+                { "action": "removeItemFromInventory", "item": "Sticky Sap" }
+              ],
+              "priority": 1
+            },
+            {
+              "command": "place golden coin",
+              "target": "Golden Coin",
+              "description": "Place the Golden Coin back in the square.",
+              "response": "You place the Golden Coin back in the square.",
+              "condition": [
+                { "type": "hasItem", "item": "Golden Coin" }
+              ],
+              "actionTrigger": [
+                { "action": "setState", "target": "playerData.inventory.name:Golden Coin", "condition": "pickedUp", "value": false },
+                { "action": "removeItemFromInventory", "item": "Golden Coin" }
+              ],
+              "priority": 1
+            }
+          ]
+        },
+        {
+          "itemId": 2,
+          "name": "Computer",
+          "description": "A dusty old computer humming faintly.",
+          "itemState": { 
+            "isHidden": false,
+            "isInvisible": false, 
+            "poweredOn": false },
+            "interactions": [
+              {
+                "condition": [
+                  { "type": "itemState", "key": "poweredOn", "value": false }
+                ],
+                "text": "You think the computer is on, but the screen isn't showing anything."
+              },
+              {
+                "condition": { "type": "itemState", "key": "poweredOn", "value": true },
+                "text": "The screen flickers from time to time."
+              }
+            ],
+          "commands": [
+            {
+              "command": "use computer",
+              "response": "You press a key, and the screen flickers to life.",
+              "condition": { "type": "itemState", "key": "poweredOn", "value": false },
+              "actionTrigger": [
+                { "action": "setState", "target": "areas.areaId:MM5.items.name:Computer", "condition": "poweredOn", "value": true }
+              ]
+            },
+            {
+              "command": "use computer",
+              "response": "The screen glows softly, displaying cryptic symbols.",
+              "condition": { "type": "itemState", "key": "poweredOn", "value": true }
+            }
+          ]
+        }
+      ],
+      "secrets": [
+        {
+          "secretId": 1,
+          "name": "fountain",
+          "description": "A stone fountain sits in the middle of the square, surrounded by flowers.",
+          "discovery": "It’s always visible, but closer inspection might reveal more.",
+          "secretState": {
+            "isInvisible": false,
+            "isHidden": false
           },
-          {
-            "command": "go east",
-            "description": "Move to the east exit.",
-            "response": "You travel to the eastern path.",
-            "condition": null
+          "commands": [
+            {
+              "command": "look fountain",
+              "target": "fountain",
+              "description": "Look at the fountain without Magic Lens.",
+              "response": "You see a regular fountain, nothing special.",
+              "condition": [
+                { "type": "areaState", "key": "revealedButton", "value": false }
+              ],
+              "priority": 1
+            },
+            {
+              "command": "look fountain",
+              "target": "fountain",
+              "description": "Used the Magic Lens on the the fountain with Magic Lens to see the button.",
+              "response": "You notice a strange button on the side of the fountain.",
+              "condition": [
+                { "type": "areaState", "key": "revealedHiddenPassage", "value": false },
+                { "type": "areaState", "key": "revealedButton", "value": true }
+              ],
+              "priority": 2
+            },
+            {
+              "command": "look fountain",
+              "target": "fountain",
+              "description": "Look at the fountain after revealing the passage.",
+              "response": "The fountain is sitting in the flowers. Where is the water coming from?",
+              "condition": [
+                { "type": "areaState", "key": "revealedHiddenPassage", "value": true },
+                { "type": "areaState", "key": "revealedButton", "value": true }
+              ],
+              "priority": 3
+            }
+          ]
+        },
+        {
+          "secretId": 2,
+          "name": "hidden button",
+          "description": "A strange button on the side of the fountain.",
+          "discovery": "Visible only with the Magic Lens.",
+          "secretState": {
+            "isInvisible": true,
+            "isHidden": false
           },
-          {
-            "command": "go west",
-            "description": "Move to the west exit.",
-            "response": "You head towards the shops.",
-            "condition": { "type": "hasItem", "item": "Golden Coin"},
-            "elseResponse": "You don't see the sense in shopping without money.",
-            "actionTrigger": [
-              { "action": "setPlayerArea", "target": "playerData", "areaId": "LM5"  }
-            ]
+          "commands": [
+            {
+              "command": "push button",
+              "target": "hidden button",
+              "description": "Press the button on the fountain.",
+              "response": "The fountain moves aside, revealing a hidden passage.",
+              "condition": [
+                { "type": "areaState", "key": "revealedHiddenPassage", "value": false }
+              ],
+              "actionTrigger": [
+                { "action": "setState", "target": "areas.areaId:MM5", "condition": "revealedHiddenPassage", "value": true },
+                { "action": "setState", "target": "areas.areaId:MM5.secrets.secretId:3", "condition": "isInvisible", "value": false }
+              ],
+              "priority": 2
+            },
+            {
+              "command": "push button",
+              "target": "hidden button",
+              "description": "Try to push a button after passage is revealed.",
+              "response": "The button is already pressed, and the passage is open.",
+              "condition": [
+                { "type": "areaState", "key": "revealedHiddenPassage", "value": true }
+              ],
+              "priority": 1
+            }
+          ]
+        },
+        {
+          "secretId": 3,
+          "name": "hidden passage",
+          "description": "A narrow passage leads into darkness behind the fountain.",
+          "discovery": "Revealed by pressing the fountain button.",
+          "secretState": {
+            "isInvisible": true,
+            "isHidden": false
           },
-          {
-            "command": "go up",
-            "description": "Climb up to a higher level.",
-            "response": "You magically climb up, maybe.",
-            "condition": null
-          },
-          {
-            "command": "go down",
-            "description": "Descend to a lower level.",
-            "response": "You magically climb down, maybe.",
-            "condition": null
-          },
-          {
-            "command": "use teleport",
-            "description": "Use a teleportation method.",
-            "response": "There's no teleportation method here.",
-            "condition": null
-          },
-          {
-            "command": "go passage",
-            "description": "Enter the hidden passage.",
-            "response": "You slip through the passage to the forest.",
-            "condition": { "type": "areaState", "key": "revealedHiddenPassage", "value": true },
-            "actionTrigger": [
-              { "action": "setPlayerArea", "target": "playerData", "areaId": "MN5"  }
-            ]
-          }
-        ]
-      }
+          "commands": [
+            {
+              "command": "look hidden passage",
+              "target": "hidden passage",
+              "description": "Look at the revealed hidden passage.",
+              "response": "A narrow passage leads into darkness behind the fountain.",
+              "condition": [
+                { "type": "areaState", "key": "revealedHiddenPassage", "value": true }
+              ],
+              "priority": 2
+            }
+          ]
+        }
+      ],
+      "exits": [
+        {
+          "direction": "north",
+          "destination": null,
+          "exitState": { "isPassable": false },
+          "command": "go north",
+          "description": "This way to the dark forest is blocked.",
+          "response": null,
+          "elseResponse": "Trees block your path. There must be another way!",
+          "condition": { "type": "exitState", "key": "isPassable", "value": true }
+        },
+        {
+          "direction": "south",
+          "destination": "ML5",
+          "command": "go south",
+          "description": "Move to the south exit.",
+          "response": "You travel to the southern path.",
+          "condition": null,
+          "actionTrigger": [
+            { "action": "setPlayerArea", "target": "playerData", "areaId": "ML5" }
+          ]
+        },
+        {
+          "direction": "east",
+          "destination": "NM5",
+          "command": "go east",
+          "description": "Move to the east exit.",
+          "response": "You travel to the eastern path.",
+          "condition": null,
+          "actionTrigger": [
+            { "action": "setPlayerArea", "target": "playerData", "areaId": "NM5" }
+          ]
+        },
+        {
+          "direction": "west",
+          "destination": "LM5",
+          "command": "go west",
+          "description": "Move to the west exit.",
+          "response": "You head towards the shops.",
+          "condition": { "type": "hasItem", "item": "Golden Coin" },
+          "elseResponse": "You don't see the sense in shopping without money.",
+          "actionTrigger": [
+            { "action": "setPlayerArea", "target": "playerData", "areaId": "LM5" }
+          ]
+        },
+        {
+          "direction": "up",
+          "destination": "MM6",
+          "command": "go up",
+          "description": "Climb up to a higher level.",
+          "response": "You magically climb up, maybe.",
+          "condition": null,
+          "actionTrigger": [
+            { "action": "setPlayerArea", "target": "playerData", "areaId": "MM6" }
+          ]
+        },
+        {
+          "direction": "down",
+          "destination": "MM4",
+          "command": "go down",
+          "description": "Descend to a lower level.",
+          "response": "You magically climb down, maybe.",
+          "condition": null,
+          "actionTrigger": [
+            { "action": "setPlayerArea", "target": "playerData", "areaId": "MM4" }
+          ]
+        },
+        {
+          "direction": "teleport",
+          "destination": null,
+          "command": "use teleport",
+          "description": "Use a teleportation method.",
+          "response": "There's no teleportation method here.",
+          "condition": null
+        },
+        {
+          "direction": "passage",
+          "destination": "MN5",
+          "exitState": { "isSecret": true },
+          "command": "go passage",
+          "description": "Enter the hidden passage.",
+          "response": "You slip through the passage to the forest.",
+          "condition": { "type": "areaState", "key": "revealedHiddenPassage", "value": true },
+          "actionTrigger": [
+            { "action": "setPlayerArea", "target": "playerData", "areaId": "MN5" }
+          ]
+        }
+      ]
     },
     {
       "areaId": "MN5",
@@ -735,79 +756,88 @@
           ]
         }
       ],
-      "exits": {
-        "north": "impassable",
-        "south": "MM5",
-        "east": null,
-        "west": null,
-        "up": null,
-        "down": null,
-        "teleport": "NM5",
-        "passage": null,
-        "commands": [
-          {
-            "command": "go north",
-            "description": "Move to the north exit.",
-            "response": "The trees block your way north.",
-            "condition": null
-          },
-          {
-            "command": "go south",
-            "description": "Return to the Village Square.",
-            "response": "You head back through the forest to the village.",
-            "condition": null
-          },
-          {
-            "command": "go east",
-            "description": "Move to the east exit.",
-            "response": "Thick undergrowth prevents eastward travel.",
-            "condition": null
-          },
-          {
-            "command": "go west",
-            "description": "Move to the west exit.",
-            "response": "The forest is too dense to head west.",
-            "condition": null
-          },
-          {
-            "command": "go up",
-            "description": "Climb up to a higher level.",
-            "response": "The trees are too slippery to climb.",
-            "condition": null
-          },
-          {
-            "command": "go down",
-            "description": "Descend to a lower level.",
-            "response": "There’s no way down from here.",
-            "condition": null
-          },
-          {
-            "command": "go passage",
-            "description": "Return through the hidden passage.",
-            "response": "You slip back through the passage to the village square.",
-            "condition": null,
-            "actionTrigger": [
-              { "action": "setPlayerArea", "target": "playerData", "areaId": "MM5" }
-            ]
-          },
-          {
-            "command": "use teleport",
-            "description": "Use the portal in the tree stump.",
-            "response": "You step through the portal and arrive in a new place.",
-            "condition": { "type": "areaState", "key": "placedStaffInStump", "value": true },
-            "actionTrigger": [
-              { "action": "setPlayerArea", "target": "playerData", "areaId": "NM5" }
-            ]
-          }
-        ]
-      }
+      "exits": [
+        {
+          "direction": "north",
+          "destination": null,
+          "command": "go north",
+          "description": "Move to the north exit.",
+          "response": "The trees block your way north.",
+          "condition": null
+        },
+        {
+          "direction": "south",
+          "destination": "MM5",
+          "command": "go south",
+          "description": "Return to the Village Square.",
+          "response": "You head back through the forest to the village.",
+          "condition": null,
+          "actionTrigger": [
+            { "action": "setPlayerArea", "target": "playerData", "areaId": "MM5" }
+          ]
+        },
+        {
+          "direction": "east",
+          "destination": null,
+          "command": "go east",
+          "description": "Move to the east exit.",
+          "response": "Thick undergrowth prevents eastward travel.",
+          "condition": null
+        },
+        {
+          "direction": "west",
+          "destination": null,
+          "command": "go west",
+          "description": "Move to the west exit.",
+          "response": "The forest is too dense to head west.",
+          "condition": null
+        },
+        {
+          "direction": "up",
+          "destination": null,
+          "command": "go up",
+          "description": "Climb up to a higher level.",
+          "response": "The trees are too slippery to climb.",
+          "condition": null
+        },
+        {
+          "direction": "down",
+          "destination": null,
+          "command": "go down",
+          "description": "Descend to a lower level.",
+          "response": "There’s no way down from here.",
+          "condition": null
+        },
+        {
+          "direction": "passage",
+          "destination": "MM5",
+          "command": "go passage",
+          "description": "Return through the hidden passage.",
+          "response": "You slip back through the passage to the village square.",
+          "condition": null,
+          "actionTrigger": [
+            { "action": "setPlayerArea", "target": "playerData", "areaId": "MM5" }
+          ]
+        },
+        {
+          "direction": "teleport",
+          "destination": "NM5",
+          "command": "use teleport",
+          "description": "Use the portal in the tree stump.",
+          "response": "You step through the portal and arrive in a new place.",
+          "condition": { "type": "areaState", "key": "placedStaffInStump", "value": true },
+          "actionTrigger": [
+            { "action": "setPlayerArea", "target": "playerData", "areaId": "NM5" }
+          ]
+        }
+      ]
     },
     {
       "areaId": "LM5",
       "name": "Village Shops",
       "description": "A bustling row of shops with colorful stalls.",
       "areaState": {
-        "hasBoughtLens": false
+        "hasBoughtFigurine": false
       },
       "npcs": [
         {
@@ -826,12 +856,6 @@
               "condition": [
                 { "type": "npcState", "npc": "Shopkeeper", "key": "hasFigurineInStock", "value": true },
                 { "type": "hasItem", "item": "Golden Coin" }
-              ],
-              "actionTrigger": [
-                { "action": "removeItemFromInventory", "item": "Golden Coin" },
-                { "action": "addItemToInventory", "item": "Wooden Figurine" },
-                { "action": "setState", "target": "areas.areaId:LM5.npcs.npcId:3", "condition": "hasFigurineInStock", "value": false },
-                { "action": "setState", "target": "areas.areaId:LM5", "condition": "hasBoughtFigurine", "value": true }
               ]
             },
             {
@@ -843,20 +867,37 @@
               "command": "talk",
               "response": "I’ve got a Wooden Figurine, but you’ll need a Golden Coin to buy it.",
               "condition": { "type": "doesNotHaveItem", "item": "Golden Coin" }
+            },
+            {
+              "command": "place golden coin",
+              "response": "Thankee for your custom!",
+              "condition": [
+                { "type": "hasItem", "item": "Golden Coin" },
+                { "type": "npcState", "npc": "Shopkeeper", "key": "hasFigurineInStock", "value": true }
+              ],
+              "actionTrigger": [
+                { "action": "removeItemFromInventory", "item": "Golden Coin" },
+                { "action": "addItemToInventory", "item": "Wooden Figurine" },
+                { "action": "setState", "target": "areas.areaId:LM5.npcs.npcId:3", "condition": "hasFigurineInStock", "value": false },
+                { "action": "setState", "target": "areas.areaId:LM5", "condition": "hasBoughtFigurine", "value": true }
+              ]
             }
           ]
         }
       ],
-      "exits": {
-        "commands": [
-          {
-            "command": "go east",
-            "description": "Return to the village square.",
-            "response": "You head back to the square.",
-            "actionTrigger": [{ "action": "setPlayerArea", "target": "playerData", "areaId": "MM5" }]
-          }
-        ]
-      }
+      "exits": [
+        {
+          "direction": "east",
+          "destination": "MM5",
+          "command": "go east",
+          "description": "Return to the village square.",
+          "response": "You head back to the square.",
+          "condition": null,
+          "actionTrigger": [
+            { "action": "setPlayerArea", "target": "playerData", "areaId": "MM5" }
+          ]
+        }
+      ]
     }
   ]
 }

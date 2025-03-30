@@ -14,7 +14,7 @@ const commandDictionary = {
     "pull": ["tug", "yank", "pul", "pl", "yg"],
     "hit": ["hit", "tap", "smash", "whack", "bonk"],
     "use": ["utilize", "activate", "us", "u", "act", "employ", "utilise"],
-    "place": ["put", "set", "pla", "pt", "drop", "lay"],
+    "place": ["put", "set", "pla", "pt", "drop", "lay", "give"],
     "light": ["ignite", "kindle", "burn", "blaze"]
 };
 

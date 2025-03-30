@@ -1,6 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-
-
 @import "tailwindcss";
 
 @theme {
@@ -15,6 +13,8 @@
     --animate-flicker: flicker 2s infinite;
     --animate-glitch: glitch 0.5s infinite;
     --animate-glitch-static: glitch-static 10s infinite;
+    --animate-flicker-more: flicker-more 0.15s infinite alternate;
+    --animate-fuzz: fuzz 10s infinite;
   
     @keyframes screen-glitch {
         0% { transform: translate(0, 0) skew(0deg); opacity: 1; }
@@ -24,7 +24,7 @@
         40% { transform: translate(-2px, 1px) skew(-10deg); opacity: 0.85; }
         50% { transform: translate(0, 0) skew(0deg); opacity: 1; }
         100% { transform: translate(0, 0) skew(0deg); opacity: 1; }
-      }
+    }
   
     @keyframes flicker {
       0% { opacity: 1; }
@@ -37,26 +37,40 @@
 
     @keyframes glitch {
         0% { transform: translate(0, 0) skew(0deg); color: #00ff00; }
-        20% { transform: translate(2px, 0) skew(5deg); color: #00cc00; }
-        25% { transform: translate(-2px, 1px) skew(-5deg); color: #00ff33; }
+        20% { transform: translate(1px, 0) skew(5deg); color: #00cc00; }
+        25% { transform: translate(-1px, 1px) skew(-5deg); color: #00ff33; }
         30% { transform: translate(0, 0) skew(0deg); color: #00ff00; }
-        50% { transform: translate(2px, -1px) skew(10deg); color: #00cc00; }
+        50% { transform: translate(1px, -1px) skew(10deg); color: #00cc00; }
         55% { transform: translate(-1px, 0) skew(-10deg); color: #00ff33; }
         60% { transform: translate(0, 0) skew(0deg); color: #00ff00; }
         100% { transform: translate(0, 0) skew(0deg); color: #00ff00; }
-      }
-
-      @keyframes glitch-static {
-        0% { transform: skew(0deg); }
-        1% { transform: skew(10deg); color: #00cc00; }
-        2% { transform: skew(-10deg); color: #00ff33; }
-        3% { transform: skew(0deg); color: #00ff00; }
-        100% { transform: skew(0deg); color: #00ff00; }
-      }
     }
 
-  /* Scanlines as a custom utility */
-  @layer utilities {
+    @keyframes glitch-static {
+        0% { transform: skew(0deg); }
+        1% { transform: skew(5deg); color: #00cc00; }
+        2% { transform: skew(-5deg); color: #00ff33; }
+        3% { transform: skew(0deg); color: #00ff00; }
+        100% { transform: skew(0deg); color: #00ff00; }
+    }
+
+    @keyframes flicker-more {
+      0% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+
+    @keyframes fuzz {
+      0% { transform: translate(0, 0); opacity: 1; filter: blur(0px); color: #00ff00; }
+      20% { transform: translate(0.3px, -0.3px); opacity: 1; filter: blur(0.1px); color: #00cc00; }
+      40% { transform: translate(-0.3px, 0.3px); opacity: 1; filter: blur(0.05px); color: #00ff33; }
+      60% { transform: translate(0.5px, 0); opacity: 1; filter: blur(0.1px); color: #00cc00; }
+      80% { transform: translate(-0.3px, 0.3px); opacity: 1; filter: blur(0.05px); color: #00ff00; }
+      100% { transform: translate(0, 0); opacity: 1; filter: blur(0px); color: #00ff00; }
+    }
+}
+
+/* Scanlines as a custom utility */
+@layer utilities {
     .scanlines::after {
       content: '';
       @apply absolute inset-0 pointer-events-none;
@@ -68,46 +82,80 @@
         transparent 4px
       );
     }
-  }
+}
 
 /* Outer container for black background */
 .terminal-outer-container {
-    background-color: black;  /* Black background */
-    padding: 20px; /* Padding to create space for the inner container's border */
+    background-color: black;
+    padding: 20px;
     width: 100%;
     height: 100%;
     display: flex;
     justify-content: center;
-  }
+}
 
-/* Terminal.css */
+/* Terminal container with CRT effects */
 .terminal-container {
-    flex-grow: 1;
-    background-color: black;
-    color: #00ff00; /* Green text */
-    font-family: 'Courier New', monospace;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    overflow-y: auto;
-    border: 2px solid #00ff00; /* Optional: to give it a border like an old monitor */
-    border-radius: 10px;
-    box-sizing: border-box;
+  flex-grow: 1;
+  align-items: stretch;
+  background: radial-gradient(circle at center, rgba(0, 255, 0, 0.2), rgba(0, 0, 0, 0.7));
+  color: #00ff00;
+  font-family: 'Courier New', monospace;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border: 2px solid var(--color-green-500);
+  border-radius: 10px;
+  box-sizing: border-box;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.3), inset 0 0 10px rgba(0, 255, 0, 0.2); /* Inner CRT glow */
+  filter: blur(0.5px); /* Softens edges */
+  position: relative;
+  width: 100%; /* Force full width */
+  height: 100%; /* Force full height */
+  max-height: 100%; /* Still respect outer container */
+}
+
+/* Concave distortion overlay */
+.terminal-container::before {
+  content: '';
+  position: relative;
+  top: -10%;
+  left: -10%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, transparent 50%, rgba(0, 0, 0, 0.8) 80%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Static top-right glint */
+.terminal-container::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.5) 10%, transparent 70%);
+  border-radius: 50%;
+  opacity: 0.6;
+  z-index: 2;
+  pointer-events: none;
 }
 
 /* History container styling */
 .terminal-history {
-    overflow-y: auto; /* Make the history scrollable */
-    width: 100%;
-    padding-right: 20px; /* Ensure there's space for the scrollbar */
-    margin-bottom: 20px; /* Add space between history and input */
-    max-height: 80vh;
-  }
+  overflow-y: auto;
+  width: 100%;
+  padding-right: 20px;
+  margin-bottom: 20px;
+  max-height: 80vh;
+}
 
 .terminal-line {
-    margin: 5px 0;
-    line-height: 1.25;
+  margin: 5px 0;
+  line-height: 1.25;
 }
 
 .command-line {
@@ -115,22 +163,22 @@
 }
 
 .terminal-input {
-    display: flex;
-    align-items: center;
-    padding-top: 10px;
-    width: 100%;
+  display: flex;
+  align-items: center;
+  padding-top: 10px;
+  width: 100%;
 }
 
 .terminal-text-input {
-    background: transparent;
-    border: none;
-    color: #00ff00;
-    font-size: 1rem;
-    font-family: 'Courier New', monospace;
-    outline: none;
-    width: 100%;
+  background: transparent;
+  border: none;
+  color: #00ff00;
+  font-size: 1rem;
+  font-family: 'Courier New', monospace;
+  outline: none;
+  width: 100%;
 }
 
 .prompt {
-    color: #00ff00;
+  color: #00ff00;
 }

@@ -58,6 +58,7 @@ function displayArea(areaId) {
 
 // Check if a condition is true or false
 function checkCondition(condition, currentArea, itemName = undefined) {
+  // Default to true
   if (!condition) return true;
 
   // If condition is an array, ensure all conditions pass (AND logic)
@@ -125,6 +126,16 @@ function checkCondition(condition, currentArea, itemName = undefined) {
   if (condition.type === 'secretState') {
     const secret = currentArea?.secrets?.find(s => s.name === itemName);
     const value = secret?.secretState?.[condition.key] ?? false;
+    return value === condition.value;
+  }
+  if (condition.type === 'exitState') {
+    const exit = currentArea?.exits?.find(e => e.command === condition.command);
+    if (!exit) {
+      console.warn(`Exit command "${condition.command}" not found in area ${currentArea?.areaId}`);
+      return false; // Default to inaccessible if not found
+    }
+    const value = exit.exitState?.[condition.key] ?? true; // Default to passable if undefined
+    console.log(`Checking exitState for ${exit.direction}: ${condition.key}=${condition.value}, actual=${value}`);
     return value === condition.value;
   }
 
@@ -199,22 +210,33 @@ function parseCommands(currentArea) {
   let parsedCommands = [];
 
   // Exits
-  currentArea.exits?.commands?.forEach(cmd => parsedCommands.push({
-    command: cmd.command,
-    target: cmd.command.startsWith('go') ? cmd.command.split(' ')[1] || null : null,
-    type: 'exit',
-    response: cmd.response,
-    elseResponse: cmd.elseResponse,
-    condition: cmd.condition,
-    actionTrigger: cmd.actionTrigger
-  }));
+  currentArea.exits?.forEach(exit => {
+    const isSecret = exit.exitState?.isSecret === true;
+    console.log(`Exit ${exit.command}: isSecret = ${isSecret}`);
+    parsedCommands.push({
+      command: exit.command,
+      target: exit.direction,
+      destination: exit.destination,
+      type: 'exit',
+      response: exit.response,
+      elseResponse: exit.elseResponse,
+      condition: exit.condition,
+      actionTrigger: exit.actionTrigger,
+      isSecret: isSecret
+    });
+  });
 
   // Items
   currentArea.items?.forEach(item => {
     const isHidden = item.itemState?.isHidden ?? false;
     const isInvisible = item.itemState?.isInvisible ?? false;
-    if (!isHidden && !isInvisible && !item.itemState?.pickedUp) { // Only include if not hidden, not invisible, and not picked up
+    if (!isHidden && !isInvisible && !item.itemState?.pickedUp) {
       item.commands.forEach(cmd => {
+        const isSecret = currentArea.secrets?.some(s => 
+          cmd.response?.toLowerCase().includes(s.name.toLowerCase()) || 
+          cmd.actionTrigger?.some(t => t.target?.includes('secrets'))
+        ) || false;
+        console.log(`Item ${cmd.command} ${item.name}: isSecret = ${isSecret}`);
         if (cmd.command.startsWith('place') && cmd.target) {
           parsedCommands.push({
             command: cmd.command,
@@ -223,7 +245,8 @@ function parseCommands(currentArea) {
             response: cmd.response,
             condition: cmd.condition,
             actionTrigger: cmd.actionTrigger,
-            priority: cmd.priority || 0
+            priority: cmd.priority || 0,
+            isSecret: isSecret
           });
         } else {
           parsedCommands.push({
@@ -233,12 +256,11 @@ function parseCommands(currentArea) {
             response: cmd.response,
             condition: cmd.condition,
             actionTrigger: cmd.actionTrigger,
-            priority: cmd.priority || 0
+            priority: cmd.priority || 0,
+            isSecret: isSecret
           });
         }
       });
-    } else {
-      console.log(`Skipped commands for item ${item.name} (${isHidden ? 'hidden' : ''}${isInvisible ? 'invisible' : ''}${item.itemState?.pickedUp ? 'picked up' : ''})`);
     }
   });
 
@@ -247,9 +269,14 @@ function parseCommands(currentArea) {
   currentArea.npcs?.forEach(npc => {
     const isHidden = npc.npcState?.isHidden ?? false;
     const isInvisible = npc.npcState?.isInvisible ?? false;
-    if (!isHidden && !isInvisible) { // Only include commands if NPC is accessible
+    if (!isHidden && !isInvisible) {
       npc.commands.forEach(cmd => {
         const command = `${cmd.command} ${npc.name.toLowerCase()}`;
+        const isSecret = currentArea.secrets?.some(s => 
+          cmd.response?.toLowerCase().includes(s.name.toLowerCase()) || 
+          cmd.actionTrigger?.some(t => t.target?.includes('secrets'))
+        ) || false;
+        console.log(`NPC ${command}: isSecret = ${isSecret}`);
         if (!npcCommands[npc.name]) npcCommands[npc.name] = [];
         npcCommands[npc.name].push({
           command,
@@ -258,11 +285,10 @@ function parseCommands(currentArea) {
           response: cmd.response,
           condition: cmd.condition,
           actionTrigger: cmd.actionTrigger,
-          priority: cmd.priority || 0
+          priority: cmd.priority || 0,
+          isSecret: isSecret
         });
       });
-    } else {
-      console.log(`Skipped commands for NPC ${npc.name} (${isHidden ? 'hidden' : ''}${isInvisible ? 'invisible' : ''})`);
     }
   });
   Object.values(npcCommands).forEach(commands => parsedCommands.push(...commands));
@@ -271,25 +297,29 @@ function parseCommands(currentArea) {
   currentArea.secrets?.forEach(secret => {
     const isHidden = secret.secretState?.isHidden ?? false;
     const isInvisible = secret.secretState?.isInvisible ?? false;
-    if (!isHidden && !isInvisible) { // Only include commands if secret is accessible
-      secret.commands?.forEach(cmd => parsedCommands.push({
-        command: cmd.command,
-        target: cmd.target || secret.name,
-        type: 'secret',
-        response: cmd.response,
-        condition: cmd.condition,
-        actionTrigger: cmd.actionTrigger,
-        priority: cmd.priority || 0
-      }));
-    } else {
-      console.log(`Skipped commands for secret ${secret.name} (${isHidden ? 'hidden' : ''}${isInvisible ? 'invisible' : ''})`);
+    if (!isHidden && !isInvisible) {
+      secret.commands?.forEach(cmd => {
+        console.log(`Secret ${cmd.command}: isSecret = true`);
+        parsedCommands.push({
+          command: cmd.command,
+          target: cmd.target || secret.name,
+          type: 'secret',
+          response: cmd.response,
+          condition: cmd.condition,
+          actionTrigger: cmd.actionTrigger,
+          priority: cmd.priority || 0,
+          isSecret: true
+        });
+      });
     }
   });
 
-  // Inventory. Includes commands like 'light torch'
+  // Inventory
   playerData.inventory.forEach(item => {
     if (item.commands) {
       item.commands.forEach(cmd => {
+        const isSecret = cmd.actionTrigger?.some(t => t.target?.includes('secrets')) || false;
+        console.log(`Inventory ${cmd.command}: isSecret = ${isSecret}`);
         parsedCommands.push({
           command: cmd.command,
           target: cmd.target || item.name,
@@ -297,11 +327,11 @@ function parseCommands(currentArea) {
           response: cmd.response,
           condition: cmd.condition,
           actionTrigger: cmd.actionTrigger,
-          priority: cmd.priority || 0
+          priority: cmd.priority || 0,
+          isSecret: isSecret
         });
       });
     }
-    // Keep generic inventory commands to look at an item
     if (item.itemState.inInventory) {
       parsedCommands.push({
         command: `inventory ${item.name.toLowerCase()}`,
@@ -309,22 +339,23 @@ function parseCommands(currentArea) {
         type: 'inventory',
         response: null,
         condition: null,
-        priority: 0
+        priority: 0,
+        isSecret: false
       });
     }
   });
 
-  // Add dummyItems as look commands. These are simple statements that allow the
-  // player to look around without changing the game state
+  // Dummy Items
   currentArea.dummyItems?.forEach(dummy => {
-    const [target, response] = Object.entries(dummy)[0]; // e.g., ["square", "It's very peaceful"]
+    const [target, response] = Object.entries(dummy)[0];
     parsedCommands.push({
       command: `look ${target}`,
       target: target,
       description: `Dummy look at the ${target}.`,
       response: response,
       type: 'dummy',
-      priority: 1 // Low priority to avoid overriding items/npcs/secrets
+      priority: 1,
+      isSecret: false
     });
   });
 
@@ -334,16 +365,16 @@ function parseCommands(currentArea) {
     target: null,
     type: 'generic',
     response: 'You look around you.',
-    actionTrigger: null
+    actionTrigger: null,
+    isSecret: false
   });
-
-  // Display inventory
   parsedCommands.push({
     command: 'inventory',
     target: null,
     type: 'generic',
     response: 'Your inventory:',
-    actionTrigger: null
+    actionTrigger: null,
+    isSecret: false
   });
 
   console.log('Parsed Commands:', parsedCommands);
@@ -423,32 +454,44 @@ function handleGoCommand(input, parsedCommands, currentArea, target, bestMatch) 
   if (!target) {
     const availableExits = parsedCommands
       .filter(c => 
-        c.command.startsWith('go') && c.target && 
+        c.command.startsWith('go') && 
+        c.type === 'exit' && 
+        c.target && 
+        c.destination !== null &&
         (!c.condition || checkCondition(c.condition, currentArea, c.target))
       )
-      .map(c => c.target);
+      .map(c => c.target)
+      .filter((value, index, self) => self.indexOf(value) === index);
+
     if (availableExits.length > 0) {
       output.push('Available directions:');
       availableExits.forEach(exit => output.push(`- ${exit}`));
     } else {
       output.push('There are no obvious exits from here.');
     }
-    return { needsFurtherInput: true, output };
+    return { output };
   }
 
-  // Find the matching "go" command from parsedCommands
+  // Find the matching "go" command from parsedCommands, allowing shorthand
   const goMatches = parsedCommands.filter(c => 
-    c.command === `go ${target.toLowerCase()}` && c.type === 'exit'
+    c.command.startsWith('go ') && 
+    c.type === 'exit' && 
+    c.target && 
+    c.target.toLowerCase().includes(target.toLowerCase())
   );
   
   let validMatch = null;
   if (goMatches.length > 0) {
-    validMatch = goMatches[0]; // Use the first exact match for exits
+    validMatch = goMatches[0]; // Use the first match (e.g., "go passage" for "go pass")
     console.log(`Selected exit command: ${validMatch.command} (target: ${validMatch.target})`);
   } else {
-    console.log(`No exact exit match for "go ${target}", checking bestMatch: ${bestMatch ? bestMatch.command : 'none'} (target: ${bestMatch?.target || 'none'})`);
-    if (bestMatch && bestMatch.command.startsWith('go') && bestMatch.target?.toLowerCase() === target.toLowerCase()) {
-      validMatch = bestMatch; // Fallback to bestMatch if no exact match
+    console.log(`No exit match for "go ${target}", checking bestMatch: ${bestMatch ? bestMatch.command : 'none'} (target: ${bestMatch?.target || 'none'})`);
+    // Fallback to bestMatch if it’s a valid exit command with a matching target
+    if (bestMatch && 
+        bestMatch.command.startsWith('go ') && 
+        bestMatch.type === 'exit' && 
+        bestMatch.target?.toLowerCase().includes(target.toLowerCase())) {
+      validMatch = bestMatch;
       console.log(`Using bestMatch: ${validMatch.command} (target: ${validMatch.target}, priority: ${validMatch.priority || 0})`);
     }
   }
@@ -456,18 +499,23 @@ function handleGoCommand(input, parsedCommands, currentArea, target, bestMatch) 
   // Handle the result
   if (validMatch) {
     if (!validMatch.condition || checkCondition(validMatch.condition, currentArea, validMatch.target)) {
-      // Condition passes: use the main response and trigger actions
-      output.push(validMatch.response || 'You move on.');
-      handleAction(validMatch, currentArea);
-      if (validMatch.actionTrigger && validMatch.actionTrigger[0]?.areaId) {
-        output.push(...displayArea(validMatch.actionTrigger[0].areaId));
+      if (validMatch.destination !== null) {
+        // Condition passes and destination exists: use the main response and trigger actions
+        output.push(validMatch.response || 'You move on.');
+        handleAction(validMatch, currentArea);
+        if (validMatch.actionTrigger && validMatch.actionTrigger[0]?.areaId) {
+          output.push(...displayArea(validMatch.actionTrigger[0].areaId));
+        }
+      } else {
+        // No destination, treat as blocked
+        output.push(validMatch.response || `You can't go "${validMatch.target}" from here.`);
       }
     } else if (validMatch.elseResponse) {
       // Condition fails but elseResponse exists: use it
       output.push(validMatch.elseResponse);
     } else {
       // Condition fails, no elseResponse: generic message
-      output.push(`You can't go "${target}" from here.`);
+      output.push(`You can't go "${validMatch.target}" from here.`);
     }
   } else {
     // No valid match found
@@ -812,6 +860,7 @@ return { output };
 }
 
 // Place command
+// Place command
 function handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatch) {
   const output = [];
 
@@ -830,16 +879,19 @@ function handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatc
   }
 
   let validMatch = null;
-  if (bestMatch && bestMatch.command.startsWith('place') && 
-      bestMatch.target && bestMatch.target.toLowerCase().includes(target.toLowerCase()) &&
+  // Check bestMatch first, ensuring it matches the item and command
+  if (bestMatch && 
+      bestMatch.command.startsWith('place ') && 
+      bestMatch.command.toLowerCase().includes(target.toLowerCase()) && 
       (!bestMatch.condition || checkCondition(bestMatch.condition, currentArea, bestMatch.target))) {
     validMatch = bestMatch;
     console.log(`Using bestMatch: ${bestMatch.command} (target: ${bestMatch.target}, priority: ${bestMatch.priority || 0})`);
   } else {
     console.log(`bestMatch invalid or missing: ${bestMatch ? bestMatch.command : 'none'} (target: ${bestMatch?.target || 'none'})`);
+    // Fallback to parsedCommands, matching on the full command string
     const placeMatches = parsedCommands.filter(c => 
-      c.command.startsWith('place') && c.target && 
-      c.target.toLowerCase().includes(target.toLowerCase())
+      c.command.startsWith('place ') && 
+      c.command.toLowerCase().includes(target.toLowerCase()) // Match item in command, not just target
     );
     validMatch = placeMatches
       .filter(c => !c.condition || checkCondition(c.condition, currentArea, c.target))
@@ -850,15 +902,13 @@ function handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatc
   if (validMatch && validMatch.response) {
     output.push(validMatch.response);
     handleAction(validMatch, currentArea);
-  } else if (bestMatch && bestMatch.type === 'generic') {
-    output.push(`You can't place the ${invItem.name} here right now.`);
   } else {
     output.push(`You can't place the ${invItem.name} here right now.`);
   }
 
+  console.log(`Output from handlePlaceCommand: ${JSON.stringify(output)}`);
   return { output };
 }
-
 // Light command
 function handleLightCommand(input, parsedCommands, currentArea, target, bestMatch) {
   const output = [];
@@ -957,7 +1007,7 @@ function handleInventoryItem(input) {
         output.push(randomBlurb);
       }
     } else {
-      output.push(`You don't see anything special about the ${target}.`);
+      output.push(`You don't see anything special about the ${invItem.name}.`);
     }
   } else {
     output.push(`You don't have a "${target}" in your inventory.`);
@@ -987,10 +1037,10 @@ function handleAction(command, currentArea) {
           console.warn(`Item ${itemName} not found in playerData.inventory`);
         }
       } else if (targetParts[0] === 'areas' && targetParts[1].startsWith('areaId:')) {
-        const [path, subPath] = trigger.target.split('.areaId:');
+        const [, subPath] = trigger.target.split('.areaId:');
         if (subPath.includes('.npcs.npcId:')) {
           const [areaId, npcPart] = subPath.split('.npcs.npcId:');
-          const npcId = parseInt(npcPart);
+          const npcId = parseInt(npcPart, 10); // Specify radix for clarity
           const area = areaData.find(a => a.areaId === areaId);
           if (!area) {
             console.error(`Area ${areaId} not found in areaData`);
@@ -1001,15 +1051,19 @@ function handleAction(command, currentArea) {
           console.log(`Set ${trigger.condition} = ${trigger.value} for NPC ${npc.name}`);
         } else if (subPath.includes('.secrets.secretId:')) {
           const [areaId, secretPart] = subPath.split('.secrets.secretId:');
-          const secretId = parseInt(secretPart);
+          const secretId = parseInt(secretPart, 10);
           const area = areaData.find(a => a.areaId === areaId);
           if (!area) {
             console.error(`Area ${areaId} not found in areaData`);
             return;
           }
           const secret = area.secrets.find(s => s.secretId === secretId);
-          secret.secretState[trigger.condition] = trigger.value;
-          console.log(`Set ${trigger.condition} = ${trigger.value} for secret ${secret.name}`);
+          if (secret) {
+            secret.secretState[trigger.condition] = trigger.value;
+            console.log(`Set ${trigger.condition} = ${trigger.value} for secret ${secret.name}`);
+          } else {
+            console.warn(`Secret with ID ${secretId} not found in area ${areaId}`);
+          }
         } else if (subPath.includes('.items.name:')) {
           const [areaId, itemPart] = subPath.split('.items.name:');
           const itemName = itemPart;
@@ -1026,9 +1080,10 @@ function handleAction(command, currentArea) {
           item.itemState[trigger.condition] = trigger.value;
           console.log(`Set ${trigger.condition} = ${trigger.value} for item ${item.name} in area ${area.name}`);
         } else {
-          const area = areaData.find(a => a.areaId === subPath);
+          const areaId = subPath;
+          const area = areaData.find(a => a.areaId === areaId);
           if (!area) {
-            console.error(`Area ${subPath} not found in areaData`);
+            console.error(`Area ${areaId} not found in areaData`);
             return;
           }
           area.areaState[trigger.condition] = trigger.value;
@@ -1041,8 +1096,6 @@ function handleAction(command, currentArea) {
         item.itemState.inInventory = true;
         console.log(`Set ${trigger.item} inInventory = true. Current inventory:`, 
           playerData.inventory.filter(i => i.itemState.inInventory));
-        console.log(`Magic Lens state after update:`, /// delete
-          playerData.inventory.find(i => i.name === "Magic Lens")?.itemState); /// delete
       } else {
         console.warn(`Item ${trigger.item} not found in playerData.inventory`);
       }
@@ -1072,40 +1125,63 @@ function handleCommand(input) {
   const { command, target, bestMatch } = parseCommand(input, parsedCommands, currentArea, checkCondition);
   
   if (!command) {
-    return { output: [`Unknown command: ${input}`] };
+    return { output: [`Unknown command: ${input}`], isSecret: false };
   }
 
+  // Determine if the command involves a secret
+  const matchedCommand = parsedCommands.find(c => c.command === (bestMatch?.command || input)) || bestMatch;
+  const isSecret = matchedCommand?.isSecret || false;
+
+  let response;
   switch (command) {
     case 'look':
-      return handleLookCommand(input, parsedCommands, currentArea, target, bestMatch);
+      response = handleLookCommand(input, parsedCommands, currentArea, target, bestMatch);
+      break;
     case 'go':
-      return handleGoCommand(input, parsedCommands, currentArea, target, bestMatch);
+      response = handleGoCommand(input, parsedCommands, currentArea, target, bestMatch);
+      break;
     case 'talk':
-      return handleTalkCommand(input, parsedCommands, currentArea, target, bestMatch);
+      response = handleTalkCommand(input, parsedCommands, currentArea, target, bestMatch);
+      break;
     case 'take':
-      return handleTakeCommand(input, parsedCommands, currentArea, target, bestMatch);
+      response = handleTakeCommand(input, parsedCommands, currentArea, target, bestMatch);
+      break;
     case 'push':
-      return handlePushCommand(input, parsedCommands, currentArea, target, bestMatch);
+      response = handlePushCommand(input, parsedCommands, currentArea, target, bestMatch);
+      break;
     case 'pull':
-      return handlePullCommand(input, parsedCommands, currentArea, target, bestMatch);
+      response = handlePullCommand(input, parsedCommands, currentArea, target, bestMatch);
+      break;
     case 'inventory':
-      if (!target) return { output: displayInventory() };
-      return handleInventoryItem(`${command} ${target}`);
+      if (!target) response = { output: displayInventory() };
+      else response = handleInventoryItem(`${command} ${target}`);
+      break;
     case 'hit':
-      return handleHitCommand(input, parsedCommands, currentArea, target, bestMatch);
+      response = handleHitCommand(input, parsedCommands, currentArea, target, bestMatch);
+      break;
     case 'use':
-      return handleUseCommand(input, parsedCommands, currentArea, target, bestMatch);
+      response = handleUseCommand(input, parsedCommands, currentArea, target, bestMatch);
+      break;
     case 'place':
-      return handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatch);
-      case 'light':
-      return handleLightCommand(input, parsedCommands, currentArea, target, bestMatch);
+      response = handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatch);
+      break;
+    case 'light':
+      response = handleLightCommand(input, parsedCommands, currentArea, target, bestMatch);
+      break;
     default:
       if (bestMatch) {
         handleAction(bestMatch, currentArea);
-        return { output: [bestMatch.response] };
+        response = { output: [bestMatch.response] };
+      } else {
+        response = { output: [`Command "${command}" not implemented yet.`] };
       }
-      return { output: [`Command "${command}" not implemented yet.`] };
+      break;
   }
+
+  // Attach isSecret to the response
+  response.isSecret = isSecret;
+  console.log(`handleCommand response:`, { output: response.output, isSecret });
+  return response;
 }
 
 export function getPlayerData() {
