@@ -416,47 +416,65 @@ function handleLookCommand(input, parsedCommands, currentArea, target, bestMatch
 }
 
 // Go command
-function handleGoCommand(input, parsedCommands, currentArea) {
+function handleGoCommand(input, parsedCommands, currentArea, target, bestMatch) {
   const output = [];
-  const goTarget = input.toLowerCase().slice(3).trim();
 
-  if (!goTarget) {
+  // If no target is provided, list available exits
+  if (!target) {
     const availableExits = parsedCommands
-      .filter(c => c.command.startsWith('go') &&
-        c.target &&
+      .filter(c => 
+        c.command.startsWith('go') && c.target && 
         (!c.condition || checkCondition(c.condition, currentArea, c.target))
       )
       .map(c => c.target);
     if (availableExits.length > 0) {
       output.push('Available directions:');
       availableExits.forEach(exit => output.push(`- ${exit}`));
+    } else {
+      output.push('There are no obvious exits from here.');
     }
     return { needsFurtherInput: true, output };
   }
 
+  // Find the matching "go" command from parsedCommands
   const goMatches = parsedCommands.filter(c => 
-    c.command.startsWith('go') && c.target && 
-    c.target.toLowerCase().includes(goTarget)
+    c.command === `go ${target.toLowerCase()}` && c.type === 'exit'
   );
-  console.log(goMatches);
-
-if (goMatches.length === 0) {
-    output.push(`There doesn't appear to be an exit "${goTarget}" from here.`);
-    return { output };
-  }
-
-  const matchedCommand = goMatches[0]; // Assume the first match is the intended one
-  if (!matchedCommand.condition || checkCondition(matchedCommand.condition, currentArea, matchedCommand.target)) {
-    output.push(matchedCommand.response);
-    handleAction(matchedCommand, currentArea);
-    console.log(matchedCommand)
-    output.push(...displayArea(matchedCommand.actionTrigger[0].areaId));
-  } else if (matchedCommand.elseResponse) {
-    output.push(matchedCommand.elseResponse);
+  
+  let validMatch = null;
+  if (goMatches.length > 0) {
+    validMatch = goMatches[0]; // Use the first exact match for exits
+    console.log(`Selected exit command: ${validMatch.command} (target: ${validMatch.target})`);
   } else {
-    output.push(`You can't go "${goTarget}" from here.`);
+    console.log(`No exact exit match for "go ${target}", checking bestMatch: ${bestMatch ? bestMatch.command : 'none'} (target: ${bestMatch?.target || 'none'})`);
+    if (bestMatch && bestMatch.command.startsWith('go') && bestMatch.target?.toLowerCase() === target.toLowerCase()) {
+      validMatch = bestMatch; // Fallback to bestMatch if no exact match
+      console.log(`Using bestMatch: ${validMatch.command} (target: ${validMatch.target}, priority: ${validMatch.priority || 0})`);
+    }
   }
 
+  // Handle the result
+  if (validMatch) {
+    if (!validMatch.condition || checkCondition(validMatch.condition, currentArea, validMatch.target)) {
+      // Condition passes: use the main response and trigger actions
+      output.push(validMatch.response || 'You move on.');
+      handleAction(validMatch, currentArea);
+      if (validMatch.actionTrigger && validMatch.actionTrigger[0]?.areaId) {
+        output.push(...displayArea(validMatch.actionTrigger[0].areaId));
+      }
+    } else if (validMatch.elseResponse) {
+      // Condition fails but elseResponse exists: use it
+      output.push(validMatch.elseResponse);
+    } else {
+      // Condition fails, no elseResponse: generic message
+      output.push(`You can't go "${target}" from here.`);
+    }
+  } else {
+    // No valid match found
+    output.push(`There doesn't appear to be an exit "${target}" from here.`);
+  }
+
+  console.log(`Output from handleGoCommand: ${JSON.stringify(output)}`);
   return { output };
 }
 
@@ -1061,7 +1079,7 @@ function handleCommand(input) {
     case 'look':
       return handleLookCommand(input, parsedCommands, currentArea, target, bestMatch);
     case 'go':
-      return handleGoCommand(input, parsedCommands, currentArea);
+      return handleGoCommand(input, parsedCommands, currentArea, target, bestMatch);
     case 'talk':
       return handleTalkCommand(input, parsedCommands, currentArea, target, bestMatch);
     case 'take':

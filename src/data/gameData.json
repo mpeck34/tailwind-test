@@ -347,6 +347,18 @@
               "isHidden": false,
               "isInvisible": false, 
               "poweredOn": false },
+              "interactions": [
+                {
+                  "condition": [
+                    { "type": "itemState", "key": "poweredOn", "value": false }
+                  ],
+                  "text": "You think the computer is on, but the screen isn't showing anything."
+                },
+                {
+                  "condition": { "type": "itemState", "key": "poweredOn", "value": true },
+                  "text": "The screen flickers from time to time."
+                }
+              ],
             "commands": [
               {
                 "command": "use computer",
