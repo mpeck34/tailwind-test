@@ -212,7 +212,7 @@ function parseCommands(currentArea) {
   // Exits
   currentArea.exits?.forEach(exit => {
     const isSecret = exit.exitState?.isSecret === true;
-    console.log(`Exit ${exit.command}: isSecret = ${isSecret}`);
+    // console.log(`Exit ${exit.command}: isSecret = ${isSecret}`);
     parsedCommands.push({
       command: exit.command,
       target: exit.direction,
@@ -236,7 +236,7 @@ function parseCommands(currentArea) {
           cmd.response?.toLowerCase().includes(s.name.toLowerCase()) || 
           cmd.actionTrigger?.some(t => t.target?.includes('secrets'))
         ) || false;
-        console.log(`Item ${cmd.command} ${item.name}: isSecret = ${isSecret}`);
+        // console.log(`Item ${cmd.command} ${item.name}: isSecret = ${isSecret}`);
         if (cmd.command.startsWith('place') && cmd.target) {
           parsedCommands.push({
             command: cmd.command,
@@ -276,7 +276,7 @@ function parseCommands(currentArea) {
           cmd.response?.toLowerCase().includes(s.name.toLowerCase()) || 
           cmd.actionTrigger?.some(t => t.target?.includes('secrets'))
         ) || false;
-        console.log(`NPC ${command}: isSecret = ${isSecret}`);
+        // console.log(`NPC ${command}: isSecret = ${isSecret}`);
         if (!npcCommands[npc.name]) npcCommands[npc.name] = [];
         npcCommands[npc.name].push({
           command,
@@ -299,7 +299,7 @@ function parseCommands(currentArea) {
     const isInvisible = secret.secretState?.isInvisible ?? false;
     if (!isHidden && !isInvisible) {
       secret.commands?.forEach(cmd => {
-        console.log(`Secret ${cmd.command}: isSecret = true`);
+        // console.log(`Secret ${cmd.command}: isSecret = true`);
         parsedCommands.push({
           command: cmd.command,
           target: cmd.target || secret.name,
@@ -319,7 +319,7 @@ function parseCommands(currentArea) {
     if (item.commands) {
       item.commands.forEach(cmd => {
         const isSecret = cmd.actionTrigger?.some(t => t.target?.includes('secrets')) || false;
-        console.log(`Inventory ${cmd.command}: isSecret = ${isSecret}`);
+        // console.log(`Inventory ${cmd.command}: isSecret = ${isSecret}`);
         parsedCommands.push({
           command: cmd.command,
           target: cmd.target || item.name,
@@ -486,7 +486,7 @@ function handleGoCommand(input, parsedCommands, currentArea, target, bestMatch) 
     console.log(`Selected exit command: ${validMatch.command} (target: ${validMatch.target})`);
   } else {
     console.log(`No exit match for "go ${target}", checking bestMatch: ${bestMatch ? bestMatch.command : 'none'} (target: ${bestMatch?.target || 'none'})`);
-    // Fallback to bestMatch if it’s a valid exit command with a matching target
+    // Fallback to bestMatch if it's a valid exit command with a matching target
     if (bestMatch && 
         bestMatch.command.startsWith('go ') && 
         bestMatch.type === 'exit' && 
@@ -540,7 +540,7 @@ function handleTalkCommand(input, parsedCommands, currentArea, target, bestMatch
 
         // Find the NPC in the current area
         const npc = currentArea.npcs?.find(n => n.name === c.target);
-        if (!npc) return false; // Skip if NPC isn’t in the area
+        if (!npc) return false; // Skip if NPC isn't in the area
 
         // Check visibility: neither hidden nor invisible
         const isHidden = npc.npcState?.isHidden ?? false;
@@ -589,10 +589,10 @@ function handleTalkCommand(input, parsedCommands, currentArea, target, bestMatch
     if (isValidEntity) {
       output.push(`You can't talk to the ${bestMatch.target}.`);
     } else {
-      output.push(`There’s nothing matching "${target}" to talk to here.`);
+      output.push(`There's nothing matching "${target}" to talk to here.`);
     }
   } else {
-    output.push(`There’s nothing matching "${target}" to talk to here.`);
+    output.push(`There's nothing matching "${target}" to talk to here.`);
   }
 
   return { output };
@@ -612,9 +612,9 @@ function handleTakeCommand(input, parsedCommands, currentArea, target, bestMatch
       output.push("You can take:");
       availableItems.forEach(item => output.push(`- ${item}`));
     } else {
-      output.push("There’s nothing to take here.");
+      output.push("There's nothing to take here.");
     }
-    return {  output };
+    return { output };
   }
 
   let validMatch = null;
@@ -638,10 +638,8 @@ function handleTakeCommand(input, parsedCommands, currentArea, target, bestMatch
   if (validMatch && validMatch.response) {
     output.push(validMatch.response);
     handleAction(validMatch, currentArea);
-  } else if (bestMatch && bestMatch.type === 'generic') {
-    output.push(`You can't take the ${bestMatch.target}.`);
   } else {
-    output.push(`There’s nothing matching "${target}" to take here.`);
+    output.push(`There's nothing matching "${target}" to take here.`); // Consistent message
   }
 
   return { output };
@@ -686,10 +684,10 @@ function handlePushCommand(input, parsedCommands, currentArea, target, bestMatch
     if (isValidEntity) {
       output.push(`You can't push the ${bestMatch.target}.`);
     } else {
-      output.push(`There’s nothing matching "${target}" to push here.`);
+      output.push(`There's nothing matching "${target}" to push here.`);
     }
   } else {
-    output.push(`There’s nothing matching "${target}" to push here.`);
+    output.push(`There's nothing matching "${target}" to push here.`);
   }
 
   return { output };
@@ -734,10 +732,10 @@ function handlePullCommand(input, parsedCommands, currentArea, target, bestMatch
     if (isValidEntity) {
       output.push(`You can't pull the ${bestMatch.target}.`);
     } else {
-      output.push(`There’s nothing matching "${target}" to pull here.`);
+      output.push(`There's nothing matching "${target}" to pull here.`);
     }
   } else {
-    output.push(`There’s nothing matching "${target}" to pull here.`);
+    output.push(`There's nothing matching "${target}" to pull here.`);
   }
 
   return { output };
@@ -781,10 +779,10 @@ function handleHitCommand(input, parsedCommands, currentArea, target, bestMatch)
     if (isValidEntity) {
       output.push(`You can't hit the ${bestMatch.target}.`);
     } else {
-      output.push(`There’s nothing matching "${target}" to hit here.`);
+      output.push(`There's nothing matching "${target}" to hit here.`);
     }
   } else {
-    output.push(`There’s nothing matching "${target}" to hit here.`);
+    output.push(`There's nothing matching "${target}" to hit here.`);
   }
 
   return { output };
@@ -849,17 +847,16 @@ if (validMatch && validMatch.response) {
   if (isValidEntity) {
     output.push(`You can't use the ${bestMatch.target} that way... yet?`);
   } else {
-    output.push(`There’s nothing matching "${target}" to use here.`);
+    output.push(`There's nothing matching "${target}" to use here.`);
   }
 } else {
-  output.push(invItem ? `You can't use the ${invItem.name} that way... yet?` : `There’s nothing matching "${target}" to use here.`);
+  output.push(invItem ? `You can't use the ${invItem.name} that way... yet?` : `There's nothing matching "${target}" to use here.`);
 }
 
 console.log('Returning output:', output);
 return { output };
 }
 
-// Place command
 // Place command
 function handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatch) {
   const output = [];
@@ -909,6 +906,7 @@ function handlePlaceCommand(input, parsedCommands, currentArea, target, bestMatc
   console.log(`Output from handlePlaceCommand: ${JSON.stringify(output)}`);
   return { output };
 }
+
 // Light command
 function handleLightCommand(input, parsedCommands, currentArea, target, bestMatch) {
   const output = [];
@@ -1119,13 +1117,13 @@ function handleAction(command, currentArea) {
 function handleCommand(input) {
   const currentArea = areaData.find(area => area.areaId === playerData.currentArea);
   console.log('handleCommand:', { input, currentArea: currentArea?.areaId});
-  if (!currentArea) return {output: ['Invalid area.'] };
+  if (!currentArea) return { output: ['Invalid area.'], isSecret: false, isProblem: true };
 
   const parsedCommands = parseCommands(currentArea);
   const { command, target, bestMatch } = parseCommand(input, parsedCommands, currentArea, checkCondition);
   
   if (!command) {
-    return { output: [`Unknown command: ${input}`], isSecret: false };
+    return { output: [`Unknown command: ${input}`], isSecret: false, isProblem: true };
   }
 
   // Determine if the command involves a secret
@@ -1173,15 +1171,35 @@ function handleCommand(input) {
         handleAction(bestMatch, currentArea);
         response = { output: [bestMatch.response] };
       } else {
-        response = { output: [`Command "${command}" not implemented yet.`] };
+        response = { output: [`Command "${command}" not implemented yet.`], isProblem: true };
       }
       break;
   }
 
   // Attach isSecret to the response
   response.isSecret = isSecret;
-  console.log(`handleCommand response:`, { output: response.output, isSecret });
+  response.isProblem = response.isProblem || isProblemResponse(response.output);
+  console.log(`handleCommand response:`, { output: response.output, isSecret, isProblem: response.isProblem });
   return response;
+}
+
+function isProblemResponse(output) {
+  const problemPatterns = [
+    /unknown command/i,
+    /there's nothing matching/i,
+    /there doesn't appear/i,
+    /you can't/i,
+    /you don't see/i,
+    /not implemented yet/i,
+    /there are no/i,
+    /i don't know/i,
+    /you don't have/i,
+    /you don't have anything matching/i
+  ];
+  console.log(`isProblem received `, {output});
+  return output.some(line => 
+    problemPatterns.some(pattern => pattern.test(line.toLowerCase()))
+  );
 }
 
 export function getPlayerData() {

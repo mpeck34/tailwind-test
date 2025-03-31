@@ -1,0 +1,137 @@
+{
+    "areaId": "UNIQUE_ID", // e.g., "AA1", "BB2"
+    "name": "Area Name",
+    "description": "A brief description of the area.",
+    "localArea": "local_area_name", // e.g., "village", "forest"
+    "realm": "realm_name", // e.g., "testingArea", "darkRealm"
+    "areaState": {
+      "hasBeenVisited": false,
+      "isLit": true,
+      "isFlooded": false,
+      "isTrapped": false,
+      "isHidden": false
+      // Add custom states as needed
+    },
+    "environment": {
+      "additives": [
+        {
+          "condition": { "type": "areaState", "key": "key_name", "value": true/false },
+          "text": "Environmental description based on state."
+        }
+      ]
+    },
+    "dummyItems": [
+      { "item_name": "Generic description of a non-interactable item." }
+    ],
+    "npcs": [
+      {
+        "npcId": 1,
+        "name": "NPC Name",
+        "description": "A brief description of the NPC.",
+        "npcState": {
+          "hasMetPlayer": false,
+          "isHostile": false,
+          "isHidden": false
+          // Add custom states
+        },
+        "interactions": [
+          {
+            "condition": { "type": "npcState", "npc": "NPC Name", "key": "key_name", "value": true/false },
+            "text": "NPC dialogue based on state."
+          }
+        ],
+        "commands": [
+          {
+            "command": "action_name", // e.g., "talk", "look"
+            "description": "Description of the command.",
+            "response": "NPC response to the command.",
+            "condition": [
+              { "type": "npcState", "key": "key_name", "value": true/false }
+            ],
+            "actionTrigger": [
+              { "action": "setState", "target": "path.to.state", "condition": "key_name", "value": true/false },
+              { "action": "addItemToInventory", "item": "Item Name" }
+            ],
+            "priority": 1
+          }
+        ]
+      }
+    ],
+    "items": [
+      {
+        "itemId": 1,
+        "name": "Item Name",
+        "description": "A brief description of the item.",
+        "itemState": {
+          "isHidden": false,
+          "isSticky": false,
+          "pickedUp": false
+          // Add custom states
+        },
+        "interactions": [
+          {
+            "condition": { "type": "itemState", "key": "key_name", "value": true/false },
+            "text": "Description based on item state."
+          }
+        ],
+        "commands": [
+          {
+            "command": "action_name", // e.g., "take", "use"
+            "description": "Description of the command.",
+            "response": "Response to the command.",
+            "condition": [
+              { "type": "itemState", "key": "key_name", "value": true/false }
+            ],
+            "actionTrigger": [
+              { "action": "setState", "target": "path.to.state", "condition": "key_name", "value": true/false },
+              { "action": "addItemToInventory", "item": "Item Name" }
+            ],
+            "priority": 1
+          }
+        ]
+      }
+    ],
+    "secrets": [
+      {
+        "secretId": 1,
+        "name": "Secret Name",
+        "description": "A brief description of the secret.",
+        "discovery": "How to discover the secret.",
+        "secretState": {
+          "isInvisible": false,
+          "isHidden": false
+          // Add custom states
+        },
+        "commands": [
+          {
+            "command": "action_name", // e.g., "look", "push"
+            "target": "Secret Name",
+            "description": "Description of the command.",
+            "response": "Response to the command.",
+            "condition": [
+              { "type": "areaState", "key": "key_name", "value": true/false }
+            ],
+            "actionTrigger": [
+              { "action": "setState", "target": "path.to.state", "condition": "key_name", "value": true/false }
+            ],
+            "priority": 1
+          }
+        ]
+      }
+    ],
+    "exits": [
+      {
+        "direction": "direction_name", // e.g., "north", "passage"
+        "destination": "DESTINATION_ID", // e.g., "AA2" or null
+        "exitState": { "isPassable": true, "isSecret": false },
+        "command": "go direction_name",
+        "description": "Description of the exit.",
+        "response": "Response when moving.",
+        "elseResponse": "Response if condition fails.",
+        "condition": { "type": "exitState", "key": "key_name", "value": true/false },
+        "actionTrigger": [
+          { "action": "setPlayerArea", "target": "playerData", "areaId": "DESTINATION_ID" }
+        ]
+      }
+    ]
+  }
