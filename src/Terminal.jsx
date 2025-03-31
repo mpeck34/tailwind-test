@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import useSound from 'use-sound';
+import staticSound from './assets/audio/static-noise-several-different-ones-59881.mp3';
 import { handleCommand } from './game';
 import './Terminal.css';
 
@@ -16,6 +18,12 @@ function Terminal({ onQuit, initialHistory = [] }) {
   const sparksRef = useRef([]);
   const decayIntervalRef = useRef(null);
   const renderIntervalRef = useRef(null);
+
+  // Initialize sound with useSound
+  const [play, { sound }] = useSound(staticSound, {
+    volume: 0, // Start muted
+    loop: true, // Continuous loop
+  });
 
   // Render sparks
   const renderSparks = () => {
@@ -41,7 +49,6 @@ function Terminal({ onQuit, initialHistory = [] }) {
       ctx.fillStyle = `rgba(0, 255, 0, ${alpha})`;
       ctx.fillRect(spark.x, spark.y, chunkSize, chunkSize);
     });
-    // console.log('Rendered:', sparksRef.current.length, 'sparks'); // Disabled for now
   };
 
   // Update spark TTLs
@@ -84,7 +91,6 @@ function Terminal({ onQuit, initialHistory = [] }) {
       });
     }
     sparksRef.current.push(...newSparks);
-    // console.log('Spawned:', newSparks.length, 'Total active:', sparksRef.current.length);
   };
 
   // Update spawners
@@ -132,19 +138,19 @@ function Terminal({ onQuit, initialHistory = [] }) {
 
   // Get decay interval
   const getDecayInterval = (queueLength) => {
-    if (queueLength <= 10) return 7000;
-    if (queueLength <= 20) return 5000;
-    if (queueLength <= 30) return 2000;
+    if (queueLength <= 10) return 3000;
+    if (queueLength <= 20) return 2250;
+    if (queueLength <= 30) return 1500;
     return 1000;
   };
 
-  // Setup and cleanup
+  // Setup sound and sparks
   useEffect(() => {
     sparksRef.current = [];
     spawnersRef.current = [];
     renderSparks();
 
-    updateSpawners(problemQueue.length > 37 ? 37 : problemQueue.length); // Cap at 37
+    updateSpawners(problemQueue.length > 37 ? 37 : problemQueue.length);
 
     const decayInterval = getDecayInterval(problemQueue.length);
     decayIntervalRef.current = setInterval(() => {
@@ -154,7 +160,7 @@ function Terminal({ onQuit, initialHistory = [] }) {
           return prev;
         }
         const newQueue = prev.slice(1);
-        const newLength = newQueue.length > 37 ? 37 : newQueue.length; // Cap at 37
+        const newLength = newQueue.length > 37 ? 37 : newQueue.length;
         sparksRef.current = sparksRef.current.filter(spark => spark.fromQueue > newLength);
         console.log('Decayed to Queue:', newLength, 'Active:', sparksRef.current.length);
         return newQueue;
@@ -163,18 +169,22 @@ function Terminal({ onQuit, initialHistory = [] }) {
 
     renderIntervalRef.current = setInterval(updateSparks, 50);
 
+    // Start the sound immediately
+    play();
+
     return () => {
       clearInterval(decayIntervalRef.current);
       clearInterval(renderIntervalRef.current);
       spawnersRef.current.forEach(spawner => clearInterval(spawner.intervalId));
       spawnersRef.current = [];
+      sound?.stop(); // Stop sound on cleanup
       console.log('Cleanup complete');
     };
-  }, []);
+  }, [play, sound]);
 
   // Sync spawners and decay interval with queue length
   useEffect(() => {
-    const newLength = problemQueue.length > 37 ? 37 : problemQueue.length; // Cap at 37
+    const newLength = problemQueue.length > 37 ? 37 : problemQueue.length;
     updateSpawners(newLength);
     const newInterval = getDecayInterval(newLength);
     clearInterval(decayIntervalRef.current);
@@ -182,7 +192,7 @@ function Terminal({ onQuit, initialHistory = [] }) {
       setProblemQueue((prev) => {
         if (prev.length === 0) return prev;
         const newQueue = prev.slice(1);
-        const cappedLength = newQueue.length > 37 ? 37 : newQueue.length; // Cap at 37
+        const cappedLength = newQueue.length > 37 ? 37 : newQueue.length;
         sparksRef.current = sparksRef.current.filter(spark => spark.fromQueue > cappedLength);
         console.log('Decayed to Queue:', cappedLength, 'Active:', sparksRef.current.length);
         return newQueue;
@@ -190,6 +200,17 @@ function Terminal({ onQuit, initialHistory = [] }) {
     }, newInterval);
     console.log('Queue updated to:', newLength, 'Decay interval:', newInterval);
   }, [problemQueue.length]);
+
+  // Adjust sound volume based on queue length
+  useEffect(() => {
+    if (!sound) return; // Wait until sound is loaded
+
+    const queueLength = problemQueue.length > 37 ? 37 : problemQueue.length;
+    const maxQueue = 37; // Your cap
+    const volume = queueLength / maxQueue; // Scale from 0 to 1
+    sound.volume(volume); // Set volume dynamically
+    console.log('Volume updated to:', volume, 'Queue length:', queueLength);
+  }, [problemQueue.length, sound]);
 
   // Add problem
   const addProblem = () => {
@@ -206,12 +227,19 @@ function Terminal({ onQuit, initialHistory = [] }) {
     });
   };
 
-  // Scroll to bottom
+  // Scroll to bottom with debounce
   useEffect(() => {
-    if (historyEndRef.current) {
-      historyEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [history]);
+    if (!historyEndRef.current) return;
+
+    // Use a timeout to debounce the scroll, ensuring it happens after all updates
+    const scrollTimeout = setTimeout(() => {
+      historyEndRef.current.scrollIntoView({
+        behavior: isShaking ? 'auto' : 'smooth', // Use 'auto' during shake to avoid jitter
+      });
+    }, 50); // Small delay to batch updates
+
+    return () => clearTimeout(scrollTimeout);
+  }, [history, isShaking]);
 
   // Sync initial history
   useEffect(() => {

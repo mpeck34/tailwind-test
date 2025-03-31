@@ -839,10 +839,18 @@
       "areaState": {
         "hasBoughtFigurine": false
       },
+      "environment":{
+
+      },
+      "dummyItems": [
+        {"shops": "Goodness me, look at everything for sale!"},
+        {"stalls": "They're full with all manner of things."},
+        {"merchant": "He looks trustworthy enough."}
+      ],
       "npcs": [
         {
           "npcId": 3,
-          "name": "Shopkeeper",
+          "name": "Merchant",
           "description": "A cheerful merchant with a keen eye for trade.",
           "npcState": {
             "isHidden": false,
@@ -854,7 +862,7 @@
               "command": "talk",
               "response": "Welcome! I’ve got a Wooden Figurine for sale—only one Golden Coin! It’s said to summon forest spirits.",
               "condition": [
-                { "type": "npcState", "npc": "Shopkeeper", "key": "hasFigurineInStock", "value": true },
+                { "type": "npcState", "npc": "Merchant", "key": "hasFigurineInStock", "value": true },
                 { "type": "hasItem", "item": "Golden Coin" }
               ]
             },
@@ -873,7 +881,7 @@
               "response": "Thankee for your custom!",
               "condition": [
                 { "type": "hasItem", "item": "Golden Coin" },
-                { "type": "npcState", "npc": "Shopkeeper", "key": "hasFigurineInStock", "value": true }
+                { "type": "npcState", "npc": "Merchant", "key": "hasFigurineInStock", "value": true }
               ],
               "actionTrigger": [
                 { "action": "removeItemFromInventory", "item": "Golden Coin" },
