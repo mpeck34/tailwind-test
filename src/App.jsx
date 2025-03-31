@@ -4,7 +4,7 @@ import './App.css'; // Make sure to import your styles
 
 function App() {
   return (
-    <div className="App">
+    <div className="app">
       <GameMenu />
     </div>
   );

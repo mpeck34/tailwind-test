@@ -1,35 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Terminal from './Terminal';
+import { displayArea } from './game'; // Import here
 import './App.css';
-import './Terminal.css';
 
 function GameMenu() {
     const [hasContinue, setHasContinue] = useState(false);
     const [isInProgress, setIsInProgress] = useState(false);
+    const [initialHistory, setInitialHistory] = useState([]); // New state for initial history
 
     const handleNewGame = () => {
+        console.log("Starting new game...");
+        const initialOutput = displayArea("MM5"); // Initialize here
+        setInitialHistory(initialOutput.map(text => ({ text, isSecret: false })));
         setIsInProgress(true);
-        setHasContinue(true); // Now a new game means the game can be continued
+        setHasContinue(true);
     };
 
     const handleContinueGame = () => {
         if (hasContinue) {
-            setIsInProgress(true); // Game is in progress, continue
+            setIsInProgress(true);
             console.log("Continuing the game...");
         }
     };
 
     const handleQuit = () => {
         console.log("Quitting game... Returning to menu.");
-        setIsInProgress(false); // Hide terminal and return to menu
-        // Optionally you can add logic for saving the game here
+        setIsInProgress(false);
+        setInitialHistory([]); // Reset on quit
     };
+
+    useEffect(() => {
+        console.log('GameMenu rendered, isInProgress:', isInProgress);
+    }, [isInProgress]);
 
     return (
         <div className="game-container">
             <div className="menu-container">
                 <h1 className="title">My Awesome Game</h1>
-                {!isInProgress ? (  // Show menu only when game isn't in progress
+                {!isInProgress ? (
                     <div className="menu-items">
                         <button className="menu-button" onClick={handleNewGame}>New Game</button>
                         <button className="menu-button" onClick={handleContinueGame} disabled={!hasContinue}>
@@ -43,7 +51,7 @@ function GameMenu() {
 
             {isInProgress && (
                 <div className="terminal-outer-container">
-                    <Terminal onQuit={handleQuit} />
+                    <Terminal onQuit={handleQuit} initialHistory={initialHistory} />
                 </div>
             )}
         </div>

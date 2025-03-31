@@ -1,25 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { handleCommand, displayArea } from './game'; 
+import { handleCommand } from './game';
 import './Terminal.css';
 
-function Terminal({ onQuit }) {
+function Terminal({ onQuit, initialHistory = [] }) {
   const [input, setInput] = useState('');
-  const [history, setHistory] = useState([]);
+  const [history, setHistory] = useState(initialHistory);
   const historyEndRef = useRef(null);
   const inputRef = useRef(null);
   const [isShaking, setIsShaking] = useState(false);
   const [flickerIndex, setFlickerIndex] = useState(null);
   const [glitchIndex, setGlitchIndex] = useState(null);
-  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    if (!hasInitialized.current) {
-      console.log('Initializing game...');
-      const initialOutput = displayArea("MM5");
-      setHistory(initialOutput.map(text => ({ text, isSecret: false })));
-      hasInitialized.current = true;
-    }
+    console.log('Terminal mounted, instance:', Date.now());
+    return () => console.log('Terminal unmounted');
   }, []);
+
+  useEffect(() => {
+    setHistory(initialHistory);
+  }, [initialHistory]);
 
   useEffect(() => {
     if (historyEndRef.current) {
@@ -27,40 +26,29 @@ function Terminal({ onQuit }) {
     }
   }, [history]);
 
-  // Randomly pick a line to flicker from the last 10 lines
-  useEffect(() => {
-    if (history.length > 0) {
-      setFlickerIndex(null);
-      setTimeout(() => {
-        const startIndex = Math.max(0, history.length - 10);
-        const eligibleLines = history.length - startIndex;
-        const randomOffset = Math.floor(Math.random() * eligibleLines);
-        const newFlickerIndex = startIndex + randomOffset;
-        setFlickerIndex(newFlickerIndex);
-      }, 0);
-    }
-  }, [history]);
-
-  // Random glitch every ~10s, boosted for secrets
   useEffect(() => {
     if (history.length === 0) return;
+    const timer = setTimeout(() => {
+      const startIndex = Math.max(0, history.length - 10);
+      const randomOffset = Math.floor(Math.random() * (history.length - startIndex));
+      setFlickerIndex(startIndex + randomOffset);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [history]);
 
+  useEffect(() => {
+    if (history.length === 0) return;
+    let timeoutId;
     const glitchInterval = () => {
       const startIndex = Math.max(0, history.length - 10);
-      const eligibleLines = history.length - startIndex;
-      const randomOffset = Math.floor(Math.random() * eligibleLines);
+      const randomOffset = Math.floor(Math.random() * (history.length - startIndex));
       const newGlitchIndex = startIndex + randomOffset;
-
-      // Boost glitch if the line is secret-related
       const isSecretLine = history[newGlitchIndex]?.isSecret;
       setGlitchIndex(newGlitchIndex);
-      setTimeout(() => setGlitchIndex(null), isSecretLine ? 1000 : 500); // Longer for secrets
-
-      const nextGlitchDelay = isSecretLine ? 1000000 : (5000 + Math.random() * 10000); // Faster for secrets
-      return setTimeout(glitchInterval, nextGlitchDelay);
+      setTimeout(() => setGlitchIndex(null), isSecretLine ? 1000 : 500);
+      timeoutId = setTimeout(glitchInterval, isSecretLine ? 1000000 : (5000 + Math.random() * 10000));
     };
-
-    const timeoutId = glitchInterval();
+    timeoutId = setTimeout(glitchInterval, 5000);
     return () => clearTimeout(timeoutId);
   }, [history]);
 
@@ -79,65 +67,79 @@ function Terminal({ onQuit }) {
 
     const response = handleCommand(input);
     const output = Array.isArray(response.output) ? response.output : ['Something went wrong.'];
-
     if (output.some(line => line.toLowerCase().includes('error') || line.toLowerCase().includes('unknown'))) {
       setIsShaking(true);
       setTimeout(() => setIsShaking(false), 200);
     }
-
-    // Attach isSecret to each output line if the command involves a secret
     const taggedOutput = output.map(line => ({ text: line, isSecret: response.isSecret }));
     setHistory((prev) => [...prev, ...newHistory, ...taggedOutput]);
     setInput('');
   };
 
-  return (
-    <div
-      className={`terminal-container scanlines relative ${
-        isShaking ? 'animate-screen-glitch' : ''
-      }`}
-      onClick={() => inputRef.current.focus()}
-    >
-      <div className="terminal-history">
-        {history.map((entry, index) => {
-          const line = typeof entry === 'string' ? entry : entry.text;
-          const isSecret = typeof entry === 'object' && entry.isSecret;
-          console.log(`Line ${index}: "${line}", isSecret: ${isSecret}`);
-          const isCommand = line.startsWith('> ');
-          return (
-            <div
-              key={index}
-              className={`terminal-line ${
-                isCommand ? 'command-line' : ''
-              } ${
-                index === flickerIndex
-                  ? 'animate-flicker'
-                  : index === glitchIndex
-                  ? 'animate-glitch'
-                  : isSecret
-                  ? 'animate-fuzz'
-                  : ''
-              }`}
-            >
-              {line}
-            </div>
-          );
-        })}
-        <div ref={historyEndRef} />
-      </div>
+  useEffect(() => {
+    console.log('DOM .terminal-history count:', document.querySelectorAll('.terminal-history').length);
+  }, [history]);
 
-      <form className="terminal-input" onSubmit={handleInputSubmit}>
-        <span className="prompt">{'>'}</span>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          autoFocus
-          className="terminal-text-input"
-          ref={inputRef}
-        />
-      </form>
-    </div>
+  console.log('Terminal rendering, history length:', history.length);
+
+  return (
+    <>
+      <div className={`terminal-container scanlines relative ${isShaking ? 'animate-screen-glitch' : ''}`} onClick={() => inputRef.current.focus()}>
+      <svg width="0" height="0" style={{ position: 'absolute' }}>
+        <defs>
+          {/* Define the radial gradient (same as before) */}
+          <radialGradient id="displacementGradient" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="rgb(255, 255, 255)" />
+            <stop offset="100%" stopColor="rgb(128, 128, 128)" />
+          </radialGradient>
+
+          {/* The filter */}
+          <filter id="barrel-distort" x="-20%" y="-20%" width="140%" height="140%">
+            {/* Use the radial gradient as the displacement map */}
+            <feImage xlinkHref="#displacementGradient" result="displacementMap" width="100%" height="100%"/>
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="displacementMap"
+              scale="0"
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
+          </filter>
+        </defs>
+      </svg>
+        <div className="terminal-history">
+          {history.map((entry, index) => {
+            const line = typeof entry === 'string' ? entry : entry.text;
+            const isSecret = typeof entry === 'object' && entry.isSecret;
+            console.log(`Line ${index}: "${line}", isSecret: ${isSecret}`);
+            const isCommand = line.startsWith('> ');
+            return (
+              <div
+                key={`${index}-${line}`}
+                className={`terminal-line ${isCommand ? 'command-line' : ''} ${
+                  index === flickerIndex ? 'animate-flicker' : index === glitchIndex ? 'animate-glitch' : isSecret ? 'animate-fuzz' : ''
+                }`}
+              >
+                {line}
+              </div>
+            );
+          })}
+          <div ref={historyEndRef} />
+        </div>
+
+        <form className="terminal-input" onSubmit={handleInputSubmit}>
+          <span className="prompt">{'>'}</span>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            autoFocus
+            className="terminal-text-input"
+            ref={inputRef}
+          />
+        </form>
+      </div>
+    </>
   );
 }
 

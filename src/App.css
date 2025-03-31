@@ -1,45 +1,71 @@
 /* app.css */
 
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+@import "tailwindcss"; /* If you are using Tailwind */
+
+/* Define your theme variables (optional, but good practice) */
+@theme {
+  --font-mono: "VT323", monospace;
+  --color-green-500: #00ff00;
+}
+
 /* Ensure #root takes up the full height */
 #root {
-  height: 100vh; /* Full viewport height */
+  height: 100vh;
   display: flex;
-  flex-direction: column; /* Stack children vertically */
+  flex-direction: column;
   width: 100%;
 }
 
 .app {
-  height: 100vh;
+  height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
 }
 
 .game-container {
   display: flex;
-  height: 100vh;
+  height: 100%;
   width: 100%;
   background-color: black;
+  overflow: hidden;
 }
 
 /* Menu container on the left */
 .menu-container {
-  width: 300px;       /* Fixed width for the menu */
+  width: 300px; /* Fixed width for the menu */
   background-color: black;
   color: white;
-  font-family: 'Courier New', monospace; /* Monospace font like the terminal */
+  font-family: var(--font-mono);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;       /* Full height */
+  height: 100%;
   padding: 20px;
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
+.terminal-outer-container {
+  background-color: black;
+  padding: 20px;
+  width: 100%;
+  max-width: 1000px;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  overflow: hidden;
+  filter: url(#barrel-distort);
+}
+
+/* Rest unchanged */
 .title {
   font-size: 1rem;
   margin-bottom: 2rem;
   color: #00ff00;
+  font-family: var(--font-mono);
 }
 
 .menu-items {
@@ -48,34 +74,30 @@
   gap: 1rem;
 }
 
-/* Button styling */
 .menu-button {
   padding: 1rem 2rem;
   font-size: 1rem;
   color: white;
-  background-color: transparent; /* Transparent background for the buttons */
-  border: 2px solid #00ff00; /* Green border like the terminal */
+  background-color: transparent;
+  border: 2px solid #00ff00;
   border-radius: 0px;
   cursor: pointer;
-  font-family: 'Courier New', monospace; /* Monospace font like the terminal */
+  font-family: var(--font-mono);
 }
 
-/* Disabled button styling */
 .menu-button:disabled {
   background-color: #333;
   cursor: not-allowed;
   border-color: #00ff00;
 }
 
-/* Hover effect */
 .menu-button:hover:not(:disabled) {
-  background-color: #00ff00; /* Green background on hover */
+  background-color: #00ff00;
   border-color: #00ff00;
   color: black;
 }
 
-/* Focus styling to keep the green border */
 .menu-button:focus {
-  border-color: #00ff00; /* Keep the green border on focus */
-  outline: none; /* Ensure no additional outline is added */
+  border-color: #00ff00;
+  outline: none;
 }
