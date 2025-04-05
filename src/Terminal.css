@@ -83,7 +83,7 @@
     border: 2px solid var(--color-green-500);
     border-radius: 10px;
     box-sizing: border-box;
-    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3), inset 0 0 10px rgba(0, 255, 0, 0.2);
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3), inset 0 0 10px rgba(0, 255, 0, 0.2); /* Green gradient background */
     position: relative;
     overflow-y: hidden;
     max-height: 100%;
@@ -98,7 +98,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle, transparent 75%, rgba(0, 0, 0, 0.7) 100%);
+    background: radial-gradient(circle, transparent 90%, rgba(0, 0, 0, 0.7) 100%); /* Shade corners for effect */
     pointer-events: none;
     z-index: 1;
 }
@@ -110,7 +110,7 @@
     left: 10%;
     width: 80%;
     height: 15%;
-    background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+    background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.3) 0%, transparent 70%); /* Glare at top of screen */
     opacity: 0.7;
     z-index: 2;
     pointer-events: none;

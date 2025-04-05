@@ -2,6 +2,7 @@
     "areaId": "UNIQUE_ID", // e.g., "AA1", "BB2"
     "name": "Area Name",
     "description": "A brief description of the area.",
+    "reference": "Notes on area purpose or origin (optional)",
     "localArea": "local_area_name", // e.g., "village", "forest"
     "realm": "realm_name", // e.g., "testingArea", "darkRealm"
     "areaState": {
@@ -12,6 +13,7 @@
       "isHidden": false
       // Add custom states as needed
     },
+    "itemNames": ["Item1", "Item2"],
     "environment": {
       "additives": [
         {
@@ -47,40 +49,6 @@
             "response": "NPC response to the command.",
             "condition": [
               { "type": "npcState", "key": "key_name", "value": true/false }
-            ],
-            "actionTrigger": [
-              { "action": "setState", "target": "path.to.state", "condition": "key_name", "value": true/false },
-              { "action": "addItemToInventory", "item": "Item Name" }
-            ],
-            "priority": 1
-          }
-        ]
-      }
-    ],
-    "items": [
-      {
-        "itemId": 1,
-        "name": "Item Name",
-        "description": "A brief description of the item.",
-        "itemState": {
-          "isHidden": false,
-          "isSticky": false,
-          "pickedUp": false
-          // Add custom states
-        },
-        "interactions": [
-          {
-            "condition": { "type": "itemState", "key": "key_name", "value": true/false },
-            "text": "Description based on item state."
-          }
-        ],
-        "commands": [
-          {
-            "command": "action_name", // e.g., "take", "use"
-            "description": "Description of the command.",
-            "response": "Response to the command.",
-            "condition": [
-              { "type": "itemState", "key": "key_name", "value": true/false }
             ],
             "actionTrigger": [
               { "action": "setState", "target": "path.to.state", "condition": "key_name", "value": true/false },
@@ -135,3 +103,42 @@
       }
     ]
   }
+
+// Inventory template
+{
+"inventory": [
+    {
+      "name": "Item Name",
+      "description": "A brief description of the item.",
+      "reference": "Area/NPC it came from, what you had to do to get it",
+      "startingArea": "Area code (for game.js)",
+      "itemState": {
+        "isHidden": false,
+        "isSticky": false,
+        "pickedUp": false
+        // Add custom states
+      },
+      "interactions": [
+        {
+          "condition": { "type": "itemState", "key": "key_name", "value": true/false },
+          "text": "Description based on item state."
+        }
+      ],
+      "commands": [
+        {
+          "command": "action_name", // e.g., "take", "use"
+          "description": "Description of the command.",
+          "response": "Response to the command.",
+          "condition": [
+            { "type": "itemState", "key": "key_name", "value": true/false }
+          ],
+          "actionTrigger": [
+            { "action": "setState", "target": "path.to.state", "condition": "key_name", "value": true/false },
+            { "action": "addItemToInventory", "item": "Item Name" }
+          ],
+          "priority": 1
+        }
+      ]
+    }
+  ]
+}

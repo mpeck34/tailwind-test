@@ -1,0 +1,385 @@
+{
+    "inventory": [
+      {
+        "name": "Sticky Sap",
+        "description": "A gooey blob of sap clings to your fingers.",
+        "reference": "Given by old man in MM5 to test things out",
+        "itemState": {
+          "inInventory": true,
+          "isSticky": true,
+          "isSmelly": true,
+          "slowsMovement": true,
+          "isRemoved": false
+        }
+      },
+      {
+        "name": "Torch",
+        "description": "A wooden torch.",
+        "reference": "In inventory at game start",
+        "itemState": {
+          "inInventory": true,
+          "isLit": false,
+          "isSticky": false,
+          "isRemoved": false
+        },
+        "commands": [
+          {
+            "command": "light torch",
+            "target": "Torch",
+            "description": "Light the torch to illuminate your surroundings.",
+            "response": "You light the torch, casting a warm glow.",
+            "condition": [
+              { "type": "itemState", "key": "isLit", "value": false },
+              { "type": "itemState", "key": "inInventory", "value": true }
+            ],
+            "actionTrigger": [
+              { "action": "setState", "target": "inventory.name:Torch", "condition": "isLit", "value": true }
+            ],
+            "priority": 1
+          },
+          {
+            "command": "light torch",
+            "target": "Torch",
+            "description": "Try to light an already lit torch.",
+            "response": "The torch is already lit.",
+            "condition": [
+              { "type": "itemState", "key": "isLit", "value": true },
+              { "type": "itemState", "key": "inInventory", "value": true }
+            ],
+            "priority": 2
+          }
+        ]
+      },
+      {
+        "name": "Golden Coin",
+        "description": "A shiny gold coin, looks valuable.",
+        "reference": "Pick up in area MM5",
+        "startingArea": "MM5",
+        "itemState": {
+          "inInventory": false,
+          "isSticky": false,
+          "isCursed": false,
+          "canBeUsedInTrade": true,
+          "isHidden": false,
+          "pickedUp": false,
+          "lookedAt": false,
+          "isRemoved": false
+        },
+        "interactions": [
+          {
+            "condition": [
+              { "type": "itemState", "key": "lookedAt", "value": true },
+              { "type": "itemState", "key": "inInventory", "value": false }
+            ],
+            "text": "It continues to lie on the ground, glinting at you menacingly... Well, not that menacingly."
+          },
+          {
+            "condition": { "type": "itemState", "key": "isCursed", "value": true },
+            "text": "The coin feels unnaturally cold in your presence."
+          },
+          {
+            "condition": { "type": "itemState", "key": "isSticky", "value": true },
+            "text": "The coin looks oddly shiny and sticky."
+          }
+        ],
+        "commands": [
+          {
+            "command": "take golden coin",
+            "description": "Pick up the Golden Coin.",
+            "response": "You pick up the coin and add it to your inventory.",
+            "condition": [
+              { "type": "itemState", "key": "inInventory", "value": false },
+              { "type": "playerState", "key": "currentArea", "value": "MM5" }
+            ],
+            "actionTrigger": [
+              { "action": "setState", "target": "inventory.name:Golden Coin", "condition": "inInventory", "value": true },
+              { "action": "setState", "target": "inventory.name:Golden Coin", "condition": "pickedUp", "value": true },
+              { "action": "setState", "target": "areas.areaId:MM5", "condition": "villagersAngry", "value": true }
+            ]
+          },
+          {
+            "command": "look golden coin",
+            "description": "Look at the Golden Coin.",
+            "response": "The coin glints in the sunlight, its value unknown.",
+            "condition": [
+              { "type": "itemState", "key": "lookedAt", "value": false },
+              { "type": "itemState", "key": "inInventory", "value": false },
+              { "type": "playerState", "key": "currentArea", "value": "MM5" }
+            ],
+            "actionTrigger": [
+              { "action": "setState", "target": "inventory.name:Golden Coin", "condition": "lookedAt", "value": true }
+            ],
+            "priority": 1
+          },
+          {
+            "command": "look golden coin",
+            "description": "Look closer at the Golden Coin.",
+            "response": "As you look closer at the coin, you can see something engraved upon it.",
+            "condition": [
+              { "type": "itemState", "key": "lookedAt", "value": true },
+              { "type": "itemState", "key": "inInventory", "value": false },
+              { "type": "playerState", "key": "currentArea", "value": "MM5" }
+            ],
+            "priority": 2
+          },
+          {
+            "command": "look golden coin",
+            "description": "Look at the sticky Golden Coin.",
+            "response": "You're hoping the coin isn't stuck to the ground.",
+            "condition": [
+              { "type": "itemState", "key": "lookedAt", "value": true },
+              { "type": "itemState", "key": "inInventory", "value": false },
+              { "type": "itemState", "key": "isSticky", "value": true },
+              { "type": "playerState", "key": "currentArea", "value": "MM5" }
+            ],
+            "priority": 3
+          },
+          {
+            "command": "place sticky sap",
+            "target": "Golden Coin",
+            "description": "Place the Sticky Sap on the Golden Coin.",
+            "response": "You smear the Sticky Sap onto the Golden Coin, making it sticky.",
+            "condition": [
+              { "type": "hasItem", "item": "Sticky Sap" },
+              { "type": "itemState", "key": "inInventory", "value": false },
+              { "type": "playerState", "key": "currentArea", "value": "MM5" }
+            ],
+            "actionTrigger": [
+              { "action": "setState", "target": "inventory.name:Golden Coin", "condition": "isSticky", "value": true },
+              { "action": "setState", "target": "inventory.name:Sticky Sap", "condition": "isRemoved", "value": true },
+              { "action": "setState", "target": "inventory.name:Sticky Sap", "condition": "inInventory", "value": false }
+            ],
+            "priority": 1
+          },
+          {
+            "command": "place golden coin",
+            "target": "Golden Coin",
+            "description": "Place the Golden Coin back in the square.",
+            "response": "You place the Golden Coin back in the square.",
+            "condition": [
+              { "type": "itemState", "key": "inInventory", "value": true },
+              { "type": "playerState", "key": "currentArea", "value": "MM5" }
+            ],
+            "actionTrigger": [
+              { "action": "setState", "target": "inventory.name:Golden Coin", "condition": "inInventory", "value": false },
+              { "action": "setState", "target": "inventory.name:Golden Coin", "condition": "pickedUp", "value": false }
+            ],
+            "priority": 1
+          }
+        ]
+      },
+      {
+        "name": "Magic Lens",
+        "description": "A mystical lens that reveals hidden truths.",
+        "reference": "given by the Old Man in MM5",
+        "itemState": {
+          "inInventory": false,
+          "isHidden": false,
+          "isInvisible": false,
+          "isRemoved": false
+        },
+        "commands": [
+          {
+            "command": "use magic lens",
+            "response": "You peer through the Magic Lens, revealing a hidden button on the fountain.",
+            "condition": [
+              { "type": "playerState", "key": "currentArea", "value": "MM5" },
+              { "type": "areaState", "key": "revealedButton", "value": false },
+              { "type": "areaState", "key": "revealedHiddenPassage", "value": false },
+              { "type": "itemState", "key": "inInventory", "value": true }
+            ],
+            "actionTrigger": [
+              { "action": "setState", "target": "areas.areaId:MM5.secrets.secretId:2", "condition": "isInvisible", "value": false },
+              { "action": "setState", "target": "areas.areaId:MM5", "condition": "revealedButton", "value": true }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Wooden Staff",
+        "description": "A gnarled staff carved from forest wood, found in MN5.",
+        "reference": "Found in MN5, pull to free then take",
+        "startingArea": "MN5",
+        "itemState": {
+          "inInventory": false,
+          "isStuck": true,
+          "pickedUp": false,
+          "isHidden": false,
+          "isRemoved": false
+        },
+        "interactions": [
+          {
+            "condition": [
+              { "type": "itemState", "key": "inInventory", "value": false }
+            ],
+            "text": "The staff lies half-buried in the undergrowth."
+          }
+        ],
+        "commands": [
+          {
+            "command": "pull staff",
+            "description": "Pull on the staff to free it before taking.",
+            "response": "You yank the staff free with a satisfying *pop*!",
+            "condition": [
+              { "type": "itemState", "key": "inInventory", "value": false },
+              { "type": "itemState", "key": "isStuck", "value": true },
+              { "type": "playerState", "key": "currentArea", "value": "MN5" }
+            ],
+            "actionTrigger": [
+              { "action": "setState", "target": "inventory.name:Wooden Staff", "condition": "isStuck", "value": false }
+            ]
+          },
+          {
+            "command": "take staff",
+            "description": "Attempt to take before 'pull' to free.",
+            "response": "The staff’s stuck tighter than a goblin’s wallet!",
+            "condition": [
+              { "type": "itemState", "key": "inInventory", "value": false },
+              { "type": "itemState", "key": "isStuck", "value": true },
+              { "type": "playerState", "key": "currentArea", "value": "MN5" }
+            ],
+            "priority": 2
+          },
+          {
+            "command": "take staff",
+            "description": "Pick up the Wooden Staff.",
+            "response": "You snag the staff—hope it’s not cursed!",
+            "condition": [
+              { "type": "itemState", "key": "inInventory", "value": false },
+              { "type": "itemState", "key": "isStuck", "value": false },
+              { "type": "playerState", "key": "currentArea", "value": "MN5" }
+            ],
+            "actionTrigger": [
+              { "action": "setState", "target": "inventory.name:Wooden Staff", "condition": "inInventory", "value": true },
+              { "action": "setState", "target": "inventory.name:Wooden Staff", "condition": "pickedUp", "value": true }
+            ],
+            "priority": 1
+          },
+          {
+            "command": "look staff",
+            "description": "Look at the Wooden Staff.",
+            "response": "It’s rough, sturdy, and covered in carvings—probably not IKEA.",
+            "condition": [
+              { "type": "itemState", "key": "inInventory", "value": false },
+              { "type": "playerState", "key": "currentArea", "value": "MN5" }
+            ],
+            "priority": 1
+          },
+          {
+            "command": "place staff",
+            "description": "Place the Wooden Staff in the tree stump.",
+            "response": "You jam the staff into the stump, and it starts glowing like a discount disco ball!",
+            "condition": [
+              { "type": "itemState", "key": "inInventory", "value": true },
+              { "type": "playerState", "key": "currentArea", "value": "MN5" },
+              { "type": "areaState", "key": "placedStaffInStump", "value": false }
+            ],
+            "actionTrigger": [
+              { "action": "setState", "target": "areas.areaId:MN5", "condition": "placedStaffInStump", "value": true },
+              { "action": "setState", "target": "areas.areaId:MN5.secrets.secretId:2", "condition": "isInvisible", "value": false },
+              { "action": "setState", "target": "areas.areaId:MN5.secrets.secretId:2", "condition": "revealedPortal", "value": true },
+              { "action": "setState", "target": "inventory.name:Wooden Staff", "condition": "inInventory", "value": false },
+              { "action": "setState", "target": "inventory.name:Wooden Staff", "condition": "isRemoved", "value": true }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Wooden Figurine",
+        "description": "A small carved figurine said to summon spirits.",
+        "reference": "bought from a merchant in LM5",
+        "itemState": {
+          "inInventory": false,
+          "isHidden": false,
+          "isInvisible": false,
+          "isRemoved": false
+        },
+        "commands": [
+          {
+            "command": "use wooden figurine",
+            "response": "You hold up the Wooden Figurine, and a faint hum fills the air as the Forest Spirit appears before you.",
+            "condition": [
+              { "type": "playerState", "key": "currentArea", "value": "MN5" },
+              { "type": "itemState", "key": "inInventory", "value": true }
+            ],
+            "actionTrigger": [
+              { "action": "setState", "target": "areas.areaId:MN5.npcs.npcId:2", "condition": "isInvisible", "value": false }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Computer",
+        "description": "A dusty old computer humming faintly, found in MM5.",
+        "reference": "Just sits in MM5",
+        "startingArea": "MM5",
+        "itemState": {
+          "inInventory": false,
+          "isHidden": false,
+          "isInvisible": false,
+          "poweredOn": false,
+          "isRemoved": false
+        },
+        "interactions": [
+          {
+            "condition": [
+              { "type": "itemState", "key": "poweredOn", "value": false }
+            ],
+            "text": "You think the computer is on, but the screen isn't showing anything."
+          },
+          {
+            "condition": { "type": "itemState", "key": "poweredOn", "value": true },
+            "text": "The screen flickers from time to time."
+          }
+        ],
+        "commands": [
+          {
+            "command": "use computer",
+            "response": "You press a key, and the screen flickers to life.",
+            "condition": [
+              { "type": "itemState", "key": "poweredOn", "value": false },
+              { "type": "playerState", "key": "currentArea", "value": "MM5" }
+            ],
+            "actionTrigger": [
+              { "action": "setState", "target": "inventory.name:Computer", "condition": "poweredOn", "value": true }
+            ]
+          },
+          {
+            "command": "use computer",
+            "response": "The screen glows softly, displaying cryptic symbols.",
+            "condition": [
+              { "type": "itemState", "key": "poweredOn", "value": true },
+              { "type": "playerState", "key": "currentArea", "value": "MM5" }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Glowing Mushroom",
+        "description": "A faintly glowing mushroom",
+        "reference": "given by the Forest Spirit in MN5.",
+        "itemState": {
+          "inInventory": false,
+          "isHidden": false,
+          "isInvisible": false,
+          "isGlowing": true,
+          "isRemoved": false
+        },
+        "commands": [
+          {
+            "command": "use glowing mushroom",
+            "description": "Use the Glowing Mushroom to light the area.",
+            "response": "The mushroom casts a soft glow, illuminating the dark forest.",
+            "condition": [
+              { "type": "itemState", "key": "inInventory", "value": true },
+              { "type": "playerState", "key": "currentArea", "value": "MN5" },
+              { "type": "areaState", "key": "isDark", "value": true }
+            ],
+            "actionTrigger": [
+              { "action": "setState", "target": "areas.areaId:MN5", "condition": "isDark", "value": false }
+            ]
+          }
+        ]
+      }
+    ]
+  }

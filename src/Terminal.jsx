@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import useSound from 'use-sound';
 import staticSound from './assets/audio/static-noise-several-different-ones-59881.mp3';
+import musicTrack1 from './assets/audio/fantasy-medieval-ambient-237371.mp3';
+import musicTrack2 from './assets/audio/medieval-ambient-236809.mp3';
+import musicTrack3 from './assets/audio/medieval-citytavern-ambient-235876.mp3';
 import { handleCommand } from './game';
 import './Terminal.css';
 
@@ -19,11 +22,19 @@ function Terminal({ onQuit, initialHistory = [] }) {
   const decayIntervalRef = useRef(null);
   const renderIntervalRef = useRef(null);
 
-  // Initialize sound with useSound
+  // Initialize static sound with useSound
   const [play, { sound }] = useSound(staticSound, {
     volume: 0, // Start muted
     loop: true, // Continuous loop
   });
+
+  // Background music
+  const [playMusic1, { sound: musicAudio1 }] = useSound(musicTrack1, { loop: true, volume: 0.8 }); // Initial volume
+  const [playMusic2, { sound: musicAudio2 }] = useSound(musicTrack2, { loop: true, volume: 0.8 });
+  const [playMusic3, { sound: musicAudio3 }] = useSound(musicTrack3, { loop: true, volume: 0.8 });
+
+  const musicRefs = useRef([musicAudio1, musicAudio2, musicAudio3]);
+  const musicPlayFunctions = useRef([playMusic1, playMusic2, playMusic3]);
 
   // Render sparks
   const renderSparks = () => {
@@ -144,7 +155,17 @@ function Terminal({ onQuit, initialHistory = [] }) {
     return 1000;
   };
 
-  // Setup sound and sparks
+  // Start background music when component mounts
+  useEffect(() => {
+    musicPlayFunctions.current.forEach((play) => play());
+    console.log('Background music started');
+    return () => {
+      musicRefs.current.forEach((audio) => audio?.pause());
+      console.log('Background music paused on unmount');
+    };
+  }, []); // Empty dependency array ensures this runs only once
+
+  // Setup static sound and sparks
   useEffect(() => {
     sparksRef.current = [];
     spawnersRef.current = [];
@@ -169,7 +190,7 @@ function Terminal({ onQuit, initialHistory = [] }) {
 
     renderIntervalRef.current = setInterval(updateSparks, 50);
 
-    // Start the sound immediately
+    // Start the static sound immediately
     play();
 
     return () => {
