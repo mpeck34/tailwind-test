@@ -133,7 +133,7 @@
           "secretId": 1,
           "name": "fountain",
           "description": "A stone fountain sits in the middle of the square, surrounded by flowers.",
-          "discovery": "It’s always visible, but closer inspection might reveal more.",
+          "discovery": "It's always visible, but closer inspection might reveal more.",
           "secretState": {
             "isInvisible": false,
             "isHidden": false
@@ -410,7 +410,7 @@
               {
                 "command": "look stump",
                 "description": "Look at the tree stump without staff.",
-                "response": "An old stump—looks like it’s seen better centuries.",
+                "response": "An old stump—looks like it's seen better centuries.",
                 "condition": [
                   { "type": "areaState", "key": "placedStaffInStump", "value": false }
                 ],
@@ -419,7 +419,7 @@
               {
                 "command": "look stump",
                 "description": "Look at the tree stump after placing staff.",
-                "response": "The stump’s glowing now—fancy that!",
+                "response": "The stump's glowing now—fancy that!",
                 "condition": [
                   { "type": "areaState", "key": "placedStaffInStump", "value": true }
                 ],
@@ -477,7 +477,7 @@
           "destination": null,
           "command": "go down",
           "description": "Descend to a lower level.",
-          "response": "There’s no way down from here.",
+          "response": "There's no way down from here.",
           "condition": null
         },
         {
@@ -533,7 +533,7 @@
           "commands": [
             {
               "command": "talk",
-              "response": "Welcome! I’ve got a Wooden Figurine for sale—only one Golden Coin! It’s said to summon forest spirits.",
+              "response": "Welcome! I've got a Wooden Figurine for sale—only one Golden Coin! It's said to summon forest spirits.",
               "condition": [
                 { "type": "npcState", "npc": "Merchant", "key": "hasFigurineInStock", "value": true },
                 { "type": "hasItem", "item": "Golden Coin" }
@@ -541,12 +541,12 @@
             },
             {
               "command": "talk",
-              "response": "You’ve already bought my Wooden Figurine. May it guide you well!",
+              "response": "You've already bought my Wooden Figurine. May it guide you well!",
               "condition": { "type": "areaState", "key": "hasBoughtFigurine", "value": true }
             },
             {
               "command": "talk",
-              "response": "I’ve got a Wooden Figurine, but you’ll need a Golden Coin to buy it.",
+              "response": "I've got a Wooden Figurine, but you'll need a Golden Coin to buy it.",
               "condition": { "type": "doesNotHaveItem", "item": "Golden Coin" }
             },
             {

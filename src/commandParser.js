@@ -10,7 +10,7 @@ const commandDictionary = {
     "take": ["get", "grab", "pickup", "snag", "collect", "tak", "tke", "t", "grb", "pick"],
     "go": ["move", "travel", "head", "walk", "run", "g", "mv", "go to", "wlk"],
     "push": ["shove", "nudge", "psh", "pu", "shv", "press", "pres"],
-    "pull": ["tug", "yank", "pul", "pl", "yg"],
+    "pull": ["tug", "yank", "pul", "pl"],
     "hit": ["hit", "tap", "smash", "whack", "bonk"],
     "use": ["utilize", "activate", "us", "u", "act", "employ", "utilise"],
     "place": ["put", "set", "pla", "pt", "drop", "lay", "give"],

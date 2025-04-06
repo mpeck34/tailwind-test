@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import useSound from 'use-sound';
 import staticSound from './assets/audio/static-noise-several-different-ones-59881.mp3';
-import musicTrack1 from './assets/audio/fantasy-medieval-ambient-237371.mp3';
+import musicTrack1 from './assets/audio/fantasy-medieval-ambient-237371.mp3'; /* https://www.free-stock-music.com/search.php?keyword=medieval */
 import musicTrack2 from './assets/audio/medieval-ambient-236809.mp3';
 import musicTrack3 from './assets/audio/medieval-citytavern-ambient-235876.mp3';
 import { handleCommand } from './game';
@@ -22,21 +22,51 @@ function Terminal({ onQuit, initialHistory = [] }) {
   const decayIntervalRef = useRef(null);
   const renderIntervalRef = useRef(null);
 
-  // Initialize static sound with useSound
-  const [play, { sound }] = useSound(staticSound, {
-    volume: 0, // Start muted
-    loop: true, // Continuous loop
+  // Static sound
+  const [playStatic, { sound: staticAudio }] = useSound(staticSound, {
+    volume: 0,
+    loop: true,
   });
 
-  // Background music
-  const [playMusic1, { sound: musicAudio1 }] = useSound(musicTrack1, { loop: true, volume: 0.8 }); // Initial volume
-  const [playMusic2, { sound: musicAudio2 }] = useSound(musicTrack2, { loop: true, volume: 0.8 });
-  const [playMusic3, { sound: musicAudio3 }] = useSound(musicTrack3, { loop: true, volume: 0.8 });
+  // Music playlist - sequential loop
+  const playlist = [musicTrack1, musicTrack2, musicTrack3];
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [playMusic, {stop: stopMusic }] = useSound(playlist[currentTrackIndex], {
+    volume: 0.8,
+    onend: () => {
+      console.log(`Track ${currentTrackIndex + 1} ended`);
+      setCurrentTrackIndex((prev) => (prev + 1) % playlist.length);
+    },
+  });
 
-  const musicRefs = useRef([musicAudio1, musicAudio2, musicAudio3]);
-  const musicPlayFunctions = useRef([playMusic1, playMusic2, playMusic3]);
+  // Start music with a delay and handle track switching
+  useEffect(() => {
+    const startMusic = () => {
+      console.log(`Starting track ${currentTrackIndex + 1}: ${playlist[currentTrackIndex].split('/').pop()}`);
+      playMusic();
+    };
 
-  // Render sparks
+    const timer = setTimeout(startMusic, 1000);
+
+    return () => {
+      clearTimeout(timer);
+      stopMusic();
+      console.log('Music stopped on unmount');
+    };
+  }, [currentTrackIndex, playMusic, stopMusic]); // Re-run when track changes
+
+  // Adjust static sound volume based on queue length
+  useEffect(() => {
+    if (!staticAudio) return; // Wait until sound is loaded
+
+    const queueLength = problemQueue.length > 37 ? 37 : problemQueue.length;
+    const maxQueue = 37;
+    const volume = queueLength / maxQueue; // Scale from 0 to 1
+    staticAudio.volume(volume);
+    console.log('Static volume updated to:', volume, 'Queue length:', queueLength);
+  }, [problemQueue.length, staticAudio]);
+
+  // Render sparks, a visual theme when the user enters a command that doesn't work
   const renderSparks = () => {
     const canvas = canvasRef.current;
     if (!canvas) {
@@ -155,16 +185,6 @@ function Terminal({ onQuit, initialHistory = [] }) {
     return 1000;
   };
 
-  // Start background music when component mounts
-  useEffect(() => {
-    musicPlayFunctions.current.forEach((play) => play());
-    console.log('Background music started');
-    return () => {
-      musicRefs.current.forEach((audio) => audio?.pause());
-      console.log('Background music paused on unmount');
-    };
-  }, []); // Empty dependency array ensures this runs only once
-
   // Setup static sound and sparks
   useEffect(() => {
     sparksRef.current = [];
@@ -189,19 +209,17 @@ function Terminal({ onQuit, initialHistory = [] }) {
     }, decayInterval);
 
     renderIntervalRef.current = setInterval(updateSparks, 50);
-
-    // Start the static sound immediately
-    play();
+    playStatic();
 
     return () => {
       clearInterval(decayIntervalRef.current);
       clearInterval(renderIntervalRef.current);
       spawnersRef.current.forEach(spawner => clearInterval(spawner.intervalId));
       spawnersRef.current = [];
-      sound?.stop(); // Stop sound on cleanup
+      staticAudio?.stop();
       console.log('Cleanup complete');
     };
-  }, [play, sound]);
+  }, [playStatic, staticAudio]);
 
   // Sync spawners and decay interval with queue length
   useEffect(() => {
@@ -221,17 +239,6 @@ function Terminal({ onQuit, initialHistory = [] }) {
     }, newInterval);
     console.log('Queue updated to:', newLength, 'Decay interval:', newInterval);
   }, [problemQueue.length]);
-
-  // Adjust sound volume based on queue length
-  useEffect(() => {
-    if (!sound) return; // Wait until sound is loaded
-
-    const queueLength = problemQueue.length > 37 ? 37 : problemQueue.length;
-    const maxQueue = 37; // Your cap
-    const volume = queueLength / maxQueue; // Scale from 0 to 1
-    sound.volume(volume); // Set volume dynamically
-    console.log('Volume updated to:', volume, 'Queue length:', queueLength);
-  }, [problemQueue.length, sound]);
 
   // Add problem
   const addProblem = () => {

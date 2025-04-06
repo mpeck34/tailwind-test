@@ -5,7 +5,7 @@
         "description": "A gooey blob of sap clings to your fingers.",
         "reference": "Given by old man in MM5 to test things out",
         "itemState": {
-          "inInventory": true,
+          "inInventory": false,
           "isSticky": true,
           "isSmelly": true,
           "slowsMovement": true,
@@ -89,7 +89,8 @@
             "response": "You pick up the coin and add it to your inventory.",
             "condition": [
               { "type": "itemState", "key": "inInventory", "value": false },
-              { "type": "playerState", "key": "currentArea", "value": "MM5" }
+              { "type": "playerState", "key": "currentArea", "value": "MM5" },
+              { "type": "itemState", "key": "isRemoved", "value": false }
             ],
             "actionTrigger": [
               { "action": "setState", "target": "inventory.name:Golden Coin", "condition": "inInventory", "value": true },
@@ -142,6 +143,7 @@
             "condition": [
               { "type": "hasItem", "item": "Sticky Sap" },
               { "type": "itemState", "key": "inInventory", "value": false },
+              { "type": "itemState", "key": "pickedUp", "value": false },
               { "type": "playerState", "key": "currentArea", "value": "MM5" }
             ],
             "actionTrigger": [
@@ -232,7 +234,7 @@
           {
             "command": "take staff",
             "description": "Attempt to take before 'pull' to free.",
-            "response": "The staff’s stuck tighter than a goblin’s wallet!",
+            "response": "The staff's stuck tighter than a goblin's wallet!",
             "condition": [
               { "type": "itemState", "key": "inInventory", "value": false },
               { "type": "itemState", "key": "isStuck", "value": true },
@@ -243,7 +245,7 @@
           {
             "command": "take staff",
             "description": "Pick up the Wooden Staff.",
-            "response": "You snag the staff—hope it’s not cursed!",
+            "response": "You snag the staff—hope it's not cursed!",
             "condition": [
               { "type": "itemState", "key": "inInventory", "value": false },
               { "type": "itemState", "key": "isStuck", "value": false },
@@ -258,7 +260,7 @@
           {
             "command": "look staff",
             "description": "Look at the Wooden Staff.",
-            "response": "It’s rough, sturdy, and covered in carvings—probably not IKEA.",
+            "response": "It's rough, sturdy, and covered in carvings—probably not IKEA.",
             "condition": [
               { "type": "itemState", "key": "inInventory", "value": false },
               { "type": "playerState", "key": "currentArea", "value": "MN5" }
