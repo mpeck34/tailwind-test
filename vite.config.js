@@ -11,6 +11,7 @@ export default defineConfig({
     stringify: true
   },
   server: {
-    host: true
+    host: true,
+    allowedHosts: ['tailwind-test-zr06.onrender.com']
   }
 });
