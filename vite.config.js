@@ -9,5 +9,8 @@ export default defineConfig({
   ],
   json: {
     stringify: true
+  },
+  server: {
+    host: true
   }
 });
